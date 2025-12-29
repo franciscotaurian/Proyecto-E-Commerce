@@ -61,6 +61,24 @@ services:
       - ecommerce-network
     restart: unless-stopped
 
+  # Audit Service (Worker)
+  audit-service:
+    build:
+      context: .
+      dockerfile: audit-service/Dockerfile
+    container_name: e-commerce-audit-service
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
 networks:
   ecommerce-network:
     driver: bridge
