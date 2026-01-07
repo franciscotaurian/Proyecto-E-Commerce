@@ -13,6 +13,10 @@ func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
 	{
 		public.POST("/register", handler.Register)
 		public.POST("/login", handler.Login)
+		public.GET("/auth/verify/:token", handler.VerifyEmail)
+		public.POST("/auth/reset-password-email", handler.SendResetPasswordEmail)
+		public.GET("/auth/reset-password/:token", handler.ShowResetPasswordForm)
+		public.POST("/auth/reset-password", handler.ResetPassword)
 	}
 
 	// Protected routes (require authentication)

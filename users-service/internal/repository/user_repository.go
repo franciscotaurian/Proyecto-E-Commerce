@@ -24,7 +24,12 @@ type UserRepository interface {
 	FindByEmail(ctx context.Context, email string) (*domain.User, error)
 	FindByDNI(ctx context.Context, dni string) (*domain.User, error)
 	FindByID(ctx context.Context, id string) (*domain.User, error)
+	FindByVerificationToken(ctx context.Context, token string) (*domain.User, error)
 	Update(ctx context.Context, user *domain.User) error
+	UpdateVerificationStatus(ctx context.Context, userID string, isVerified bool) error
+	FindByResetPasswordToken(ctx context.Context, token string) (*domain.User, error)
+	UpdatePassword(ctx context.Context, userID string, password string) error
+	UpdateResetPasswordToken(ctx context.Context, userID string, token string) error
 }
 
 // MongoUserRepository implements UserRepository using MongoDB
@@ -113,6 +118,108 @@ func (r *MongoUserRepository) Update(ctx context.Context, user *domain.User) err
 			"last_name":  user.LastName,
 			"phone":      user.Phone,
 			"address":    user.Address,
+		},
+	}
+
+	result, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+
+	if result.MatchedCount == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}
+
+// FindByVerificationToken finds a user by verification token
+func (r *MongoUserRepository) FindByVerificationToken(ctx context.Context, token string) (*domain.User, error) {
+	var user domain.User
+	err := r.collection.FindOne(ctx, bson.M{"verification_token": token}).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
+// UpdateVerificationStatus updates the verification status of a user and clears the token
+func (r *MongoUserRepository) UpdateVerificationStatus(ctx context.Context, userID string, isVerified bool) error {
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return ErrUserNotFound
+	}
+
+	filter := bson.M{"_id": objectID}
+	update := bson.M{
+		"$set": bson.M{
+			"is_verified":        isVerified,
+			"verification_token": "", // Clear verification token after verification
+		},
+	}
+
+	result, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+
+	if result.MatchedCount == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}
+
+func (r *MongoUserRepository) FindByResetPasswordToken(ctx context.Context, token string) (*domain.User, error) {
+	var user domain.User
+	err := r.collection.FindOne(ctx, bson.M{"reset_password_token": token}).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *MongoUserRepository) UpdatePassword(ctx context.Context, userID string, password string) error {
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return ErrUserNotFound
+	}
+
+	filter := bson.M{"_id": objectID}
+	update := bson.M{
+		"$set": bson.M{
+			"password": password,
+		},
+	}
+
+	result, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+
+	if result.MatchedCount == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}
+
+func (r *MongoUserRepository) UpdateResetPasswordToken(ctx context.Context, userID string, token string) error {
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return ErrUserNotFound
+	}
+
+	filter := bson.M{"_id": objectID}
+	update := bson.M{
+		"$set": bson.M{
+			"reset_password_token": token,
 		},
 	}
 

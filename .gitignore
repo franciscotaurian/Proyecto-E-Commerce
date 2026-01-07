@@ -1,0 +1,41 @@
+# Ignore environment files
+.env
+*.env
+!.env.example
+
+# Ignore IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ignore build artifacts
+*/bin/
+*/pkg/
+**/vendor/
+
+# Ignore temporary files
+*.log
+*.tmp
+*.temp
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore Bleve index files
+*.bleve/
+products.bleve/
+
+# Ignore Docker volumes (if created locally)
+mongodb-data/
+rabbitmq-data/
+products-index/
+
+# Ignore test coverage reports
+*.out
+coverage.html
+
+# Ignore Go sum files (optional - some prefer to commit them)
+# go.sum

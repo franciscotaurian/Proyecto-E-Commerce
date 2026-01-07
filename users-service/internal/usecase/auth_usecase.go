@@ -2,11 +2,16 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"log"
+	"os"
 
 	"users-service/internal/domain"
 	"users-service/internal/repository"
 
+	amqp "github.com/rabbitmq/amqp091-go"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -16,15 +21,17 @@ var (
 
 // AuthUseCase handles authentication business logic
 type AuthUseCase struct {
-	userRepo  repository.UserRepository
-	jwtSecret string
+	userRepo        repository.UserRepository
+	jwtSecret       string
+	rabbitmqChannel *amqp.Channel
 }
 
 // NewAuthUseCase creates a new authentication use case
-func NewAuthUseCase(userRepo repository.UserRepository, jwtSecret string) *AuthUseCase {
+func NewAuthUseCase(userRepo repository.UserRepository, jwtSecret string, rabbitmqChannel *amqp.Channel) *AuthUseCase {
 	return &AuthUseCase{
-		userRepo:  userRepo,
-		jwtSecret: jwtSecret,
+		userRepo:        userRepo,
+		jwtSecret:       jwtSecret,
+		rabbitmqChannel: rabbitmqChannel,
 	}
 }
 
@@ -42,10 +49,25 @@ func (uc *AuthUseCase) Register(ctx context.Context, user *domain.User) (*domain
 	}
 	user.Password = string(hashedPassword)
 
+	// Generate verification token
+	token, err := GenerateVerificationToken()
+	if err != nil {
+		return nil, err
+	}
+	user.VerificationToken = token
+	user.IsVerified = false // Explicitly set to false for new users
+
 	// Create user
 	err = uc.userRepo.Create(ctx, user)
 	if err != nil {
 		return nil, err
+	}
+
+	// Send verification email via RabbitMQ
+	if uc.rabbitmqChannel != nil {
+		go uc.sendVerificationEmail(user)
+		// Publish user.created event for cart initialization
+		go uc.publishUserCreatedEvent(user)
 	}
 
 	return user, nil
@@ -95,4 +117,197 @@ func (uc *AuthUseCase) GetUserInformation(ctx context.Context, userID string) (*
 // UpdateProfile updates user profile information
 func (uc *AuthUseCase) UpdateProfile(ctx context.Context, user *domain.User) error {
 	return uc.userRepo.Update(ctx, user)
+}
+
+// sendVerificationEmail sends a verification email via RabbitMQ
+func (uc *AuthUseCase) sendVerificationEmail(user *domain.User) {
+	// Get base URL from environment or use default
+	baseURL := os.Getenv("APP_BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:8080"
+	}
+
+	// Build verification link
+	verificationLink := fmt.Sprintf("%s/api/v1/auth/verify/%s", baseURL, user.VerificationToken)
+
+	// Build email notification
+	emailNotification := map[string]interface{}{
+		"to":            user.Email,
+		"subject":       "Verifica tu email - E-Commerce Platform",
+		"template_name": "verification_email.html",
+		"template_data": map[string]interface{}{
+			"user_name":         user.FirstName,
+			"verification_link": verificationLink,
+		},
+	}
+
+	// Marshal to JSON
+	body, err := json.Marshal(emailNotification)
+	if err != nil {
+		log.Printf("Failed to marshal verification email: %v", err)
+		return
+	}
+
+	// Publish to RabbitMQ
+	err = uc.rabbitmqChannel.Publish(
+		"notifications_exchange", // exchange
+		"notification.email",     // routing key
+		false,                    // mandatory
+		false,                    // immediate
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        body,
+		},
+	)
+
+	if err != nil {
+		log.Printf("Failed to publish verification email: %v", err)
+	} else {
+		log.Printf("Verification email sent to %s", user.Email)
+	}
+}
+
+// publishUserCreatedEvent publishes a user.created event to RabbitMQ
+func (uc *AuthUseCase) publishUserCreatedEvent(user *domain.User) {
+	// Declare exchange for user events
+	err := uc.rabbitmqChannel.ExchangeDeclare(
+		"user_events_exchange", // name
+		"topic",                // type
+		true,                   // durable
+		false,                  // auto-deleted
+		false,                  // internal
+		false,                  // no-wait
+		nil,                    // arguments
+	)
+	if err != nil {
+		log.Printf("Failed to declare user events exchange: %v", err)
+		return
+	}
+
+	// Build user created event
+	event := map[string]interface{}{
+		"user_id":    user.ID.Hex(),
+		"email":      user.Email,
+		"created_at": user.CreatedAt,
+	}
+
+	// Marshal to JSON
+	body, err := json.Marshal(event)
+	if err != nil {
+		log.Printf("Failed to marshal user.created event: %v", err)
+		return
+	}
+
+	// Publish to RabbitMQ
+	err = uc.rabbitmqChannel.Publish(
+		"user_events_exchange", // exchange
+		"user.created",         // routing key
+		false,                  // mandatory
+		false,                  // immediate
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        body,
+		},
+	)
+
+	if err != nil {
+		log.Printf("Failed to publish user.created event: %v", err)
+	} else {
+		log.Printf("user.created event published for user: %s", user.ID.Hex())
+	}
+}
+
+func (uc *AuthUseCase) SendResetPasswordEmail(ctx context.Context, email string) error {
+	// Get base URL from environment or use default
+
+	user, err := uc.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+
+	baseURL := os.Getenv("APP_BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:8080"
+	}
+	secret := os.Getenv("JWT_SECRET")
+
+	// Generate reset password token
+	token, err := GeneratePasswordToken(user.ID.Hex(), secret)
+	if err != nil {
+		return err
+	}
+
+	err = uc.userRepo.UpdateResetPasswordToken(ctx, user.ID.Hex(), token)
+	if err != nil {
+		return err
+	}
+
+	// Build reset password link
+	resetPasswordLink := fmt.Sprintf("%s/api/v1/auth/reset-password/%s", baseURL, token)
+
+	// Build email notification
+	emailNotification := map[string]interface{}{
+		"to":            user.Email,
+		"subject":       "Restablece tu contraseña - E-Commerce Platform",
+		"template_name": "reset_password_email.html",
+		"template_data": map[string]interface{}{
+			"user_name":           user.FirstName,
+			"reset_password_link": resetPasswordLink,
+		},
+	}
+
+	// Marshal to JSON
+	body, err := json.Marshal(emailNotification)
+	if err != nil {
+		log.Printf("Failed to marshal reset password email: %v", err)
+		return err
+	}
+
+	// Publish to RabbitMQ
+	err = uc.rabbitmqChannel.Publish(
+		"notifications_exchange", // exchange
+		"notification.email",     // routing key
+		false,                    // mandatory
+		false,                    // immediate
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        body,
+		},
+	)
+
+	if err != nil {
+		log.Printf("Failed to publish reset password email: %v", err)
+	} else {
+		log.Printf("Reset password email sent to %s", user.Email)
+	}
+
+	return nil
+}
+
+func (uc *AuthUseCase) ResetPassword(ctx context.Context, token string, password string) error {
+	// Get base URL from environment or use default
+
+	user, err := uc.userRepo.FindByResetPasswordToken(ctx, token)
+	if err != nil {
+		return err
+	}
+
+	err = VerifyPasswordToken(token, os.Getenv("JWT_SECRET"))
+	if err != nil {
+		return err
+	}
+
+	// Hash password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	// Update user
+	err = uc.userRepo.UpdatePassword(ctx, user.ID.Hex(), string(hashedPassword))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

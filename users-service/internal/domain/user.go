@@ -21,15 +21,19 @@ type Address struct {
 
 // User represents a user entity
 type User struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
-	FirstName string             `bson:"first_name" json:"first_name"`
-	LastName  string             `bson:"last_name" json:"last_name"`
-	DNI       string             `bson:"dni" json:"dni"`
-	Email     string             `bson:"email" json:"email"`
-	Phone     string             `bson:"phone" json:"phone"`
-	Address   Address            `bson:"address" json:"address"`
-	Password  string             `bson:"password" json:"-"` // Never expose password in JSON
-	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
+	ID                 primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
+	FirstName          string             `bson:"first_name" json:"first_name"`
+	LastName           string             `bson:"last_name" json:"last_name"`
+	DNI                string             `bson:"dni" json:"dni"`
+	Email              string             `bson:"email" json:"email"`
+	Phone              string             `bson:"phone" json:"phone"`
+	Address            Address            `bson:"address" json:"address"`
+	Password           string             `bson:"password" json:"-"`
+	IsAdmin            bool               `bson:"is_admin" json:"is_admin"`
+	IsVerified         bool               `bson:"is_verified" json:"is_verified"`
+	VerificationToken  string             `bson:"verification_token,omitempty" json:"-"`
+	ResetPasswordToken string             `bson:"reset_password_token,omitempty" json:"-"`
+	CreatedAt          time.Time          `bson:"created_at" json:"created_at"`
 }
 
 type UserInformation struct {
@@ -77,26 +81,28 @@ func isValidEmail(email string) bool {
 
 // UserResponse represents a safe user response (without password)
 type UserResponse struct {
-	ID        string    `json:"id"`
-	FirstName string    `json:"first_name"`
-	LastName  string    `json:"last_name"`
-	DNI       string    `json:"dni"`
-	Email     string    `json:"email"`
-	Phone     string    `json:"phone"`
-	Address   Address   `json:"address"`
-	CreatedAt time.Time `json:"created_at"`
+	ID         string    `json:"id"`
+	FirstName  string    `json:"first_name"`
+	LastName   string    `json:"last_name"`
+	DNI        string    `json:"dni"`
+	Email      string    `json:"email"`
+	Phone      string    `json:"phone"`
+	Address    Address   `json:"address"`
+	IsVerified bool      `json:"is_verified"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 // ToResponse converts User to UserResponse
 func (u *User) ToResponse() UserResponse {
 	return UserResponse{
-		ID:        u.ID.Hex(),
-		FirstName: u.FirstName,
-		LastName:  u.LastName,
-		DNI:       u.DNI,
-		Email:     u.Email,
-		Phone:     u.Phone,
-		Address:   u.Address,
-		CreatedAt: u.CreatedAt,
+		ID:         u.ID.Hex(),
+		FirstName:  u.FirstName,
+		LastName:   u.LastName,
+		DNI:        u.DNI,
+		Email:      u.Email,
+		Phone:      u.Phone,
+		Address:    u.Address,
+		IsVerified: u.IsVerified,
+		CreatedAt:  u.CreatedAt,
 	}
 }

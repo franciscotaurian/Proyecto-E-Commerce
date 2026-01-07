@@ -4,13 +4,13 @@ services:
   # MongoDB Database
   mongodb:
     image: mongo:7.0
-    container_name: e-commerce-mongodb
+    container_name: ecommerce-mongodb
     ports:
       - "27017:27017"
     volumes:
       - mongodb-data:/data/db
     environment:
-      - MONGO_INITDB_DATABASE=e-commerce
+      - MONGO_INITDB_DATABASE=ecommerce
     networks:
       - ecommerce-network
     healthcheck:
@@ -22,7 +22,7 @@ services:
   # RabbitMQ Message Broker
   rabbitmq:
     image: rabbitmq:3.12-management-alpine
-    container_name: e-commerce-rabbitmq
+    container_name: ecommerce-rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -44,14 +44,14 @@ services:
     build:
       context: .
       dockerfile: users-service/Dockerfile
-    container_name: e-commerce-users-service
+    container_name: ecommerce-users-service
     ports:
       - "8081:8080"
     environment:
       - MONGO_URI=mongodb://mongodb:27017
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
       - JWT_SECRET=your-secret-key-change-in-production
-      - PORT=8080
+      - APP_BASE_URL=http://localhost:8081
     depends_on:
       mongodb:
         condition: service_healthy
@@ -61,18 +61,94 @@ services:
       - ecommerce-network
     restart: unless-stopped
 
+  # Products Service
+  products-service:
+    build:
+      context: .
+      dockerfile: products-service/Dockerfile
+    container_name: ecommerce-products-service
+    ports:
+      - "8082:8080"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - BLEVE_INDEX_PATH=/data/products.bleve
+      - PORT=8080
+    volumes:
+      - products-index:/data
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # Payments Service
+  payments-service:
+    build:
+      context: .
+      dockerfile: payments-service/Dockerfile
+    container_name: ecommerce-payments-service
+    ports:
+      - "8083:8080"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - JWT_SECRET=your-secret-key-change-in-production
+      - PRODUCTS_SERVICE_URL=http://products-service:8080
+      - USERS_SERVICE_URL=http://users-service:8080
+      - MERCADOPAGO_ACCESS_TOKEN=${MERCADOPAGO_ACCESS_TOKEN}
+      - MERCADOPAGO_SUCCESS_URL=${MERCADOPAGO_SUCCESS_URL:-http://localhost:3000/pago-exitoso}
+      - MERCADOPAGO_FAILURE_URL=${MERCADOPAGO_FAILURE_URL:-http://localhost:3000/pago-fallido}
+      - MERCADOPAGO_PENDING_URL=${MERCADOPAGO_PENDING_URL:-http://localhost:3000/pago-pendiente}
+      - ENVIOPACK_API_KEY=TEST-API-KEY
+      - WEBHOOK_URL=https://tularemic-unintermissive-shawnda.ngrok-free.dev/api/v1/webhook/mercadopago
+      - PORT=8080
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      products-service:
+        condition: service_started
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
   # Audit Service (Worker)
   audit-service:
     build:
       context: .
       dockerfile: audit-service/Dockerfile
-    container_name: e-commerce-audit-service
+    container_name: ecommerce-audit-service
     environment:
       - MONGO_URI=mongodb://mongodb:27017
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
     depends_on:
       mongodb:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # Notifications Service (Worker)
+  notifications-service:
+    build:
+      context: .
+      dockerfile: notifications-service/Dockerfile
+    container_name: ecommerce-notifications-service
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - GMAIL_USER=${GMAIL_USER:-taurian.fran@gmail.com}
+      - GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD}
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - EMAIL_TEMPLATES_DIR=./templates
+    depends_on:
       rabbitmq:
         condition: service_healthy
     networks:
@@ -86,3 +162,4 @@ networks:
 volumes:
   mongodb-data:
   rabbitmq-data:
+  products-index:

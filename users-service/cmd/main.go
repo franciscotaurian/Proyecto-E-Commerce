@@ -12,6 +12,7 @@ import (
 	"users-service/internal/usecase"
 
 	"github.com/gin-gonic/gin"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func main() {
@@ -43,11 +44,44 @@ func main() {
 	// Initialize repository
 	userRepo := repository.NewMongoUserRepository(mongoClient.Database)
 
-	// Initialize use case
-	authUseCase := usecase.NewAuthUseCase(userRepo, jwtSecret)
+	// Connect to RabbitMQ for sending verification emails
+	rabbitmqConn, err := amqp.Dial(rabbitMQURL)
+	if err != nil {
+		internalLogger.Error("Failed to connect to RabbitMQ: " + err.Error())
+		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
+	}
+	defer rabbitmqConn.Close()
+
+	rabbitmqChannel, err := rabbitmqConn.Channel()
+	if err != nil {
+		internalLogger.Error("Failed to create RabbitMQ channel: " + err.Error())
+		log.Fatalf("Failed to create RabbitMQ channel: %v", err)
+	}
+	defer rabbitmqChannel.Close()
+
+	// Declare notifications exchange
+	err = rabbitmqChannel.ExchangeDeclare(
+		"notifications_exchange",
+		"topic",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		internalLogger.Error("Failed to declare notifications exchange: " + err.Error())
+		log.Fatalf("Failed to declare exchange: %v", err)
+	}
+
+	internalLogger.Info("Connected to RabbitMQ")
+
+	// Initialize use cases
+	authUseCase := usecase.NewAuthUseCase(userRepo, jwtSecret, rabbitmqChannel)
+	emailUseCase := usecase.NewEmailUseCase(userRepo)
 
 	// Initialize HTTP handler
-	handler := http.NewHandler(authUseCase, jwtSecret)
+	handler := http.NewHandler(authUseCase, emailUseCase, jwtSecret)
 
 	// Setup Gin router
 	router := gin.Default()
