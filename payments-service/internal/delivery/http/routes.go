@@ -10,13 +10,14 @@ import (
 func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
 	// Public routes
 	public := router.Group("/api/v1")
+	public.Use(middleware.CORSMiddleware())
 	{
 		public.POST("/webhook/mercadopago", handler.MercadoPagoWebhook)
 	}
 
 	// Protected routes (require authentication)
 	protected := router.Group("/api/v1")
-	protected.Use(middleware.AuthMiddleware(jwtSecret))
+	protected.Use(middleware.AuthMiddleware(jwtSecret), middleware.CORSMiddleware())
 	{
 		protected.POST("/checkout", handler.CreateOrder)
 		protected.GET("/orders", handler.GetUserOrders)
@@ -26,7 +27,7 @@ func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
 	}
 
 	protectedAdmin := router.Group("/api/v1/admin")
-	protectedAdmin.Use(middleware.AuthAdminMiddleware(jwtSecret))
+	protectedAdmin.Use(middleware.AuthAdminMiddleware(jwtSecret), middleware.CORSMiddleware())
 	{
 		protectedAdmin.GET("/orders/:id", handler.FindByID)
 		protectedAdmin.GET("/orders/status/:status", handler.FindByShippingStatus)

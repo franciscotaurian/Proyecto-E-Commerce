@@ -23,6 +23,10 @@ func (uc *CategoryUseCase) CreateCategory(ctx context.Context, category *domain.
 		return errors.New("category name is required")
 	}
 
+	if category.Image == "" {
+		return errors.New("category image is required")
+	}
+
 	return uc.categoryRepo.CreateCategory(ctx, category)
 }
 
@@ -38,6 +42,10 @@ func (uc *CategoryUseCase) UpdateCategory(ctx context.Context, id string, catego
 
 	if category.Name == "" {
 		return errors.New("category name is required")
+	}
+
+	if category.Image == "" {
+		return errors.New("category image is required")
 	}
 
 	return uc.categoryRepo.UpdateCategory(ctx, id, category)

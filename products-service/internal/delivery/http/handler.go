@@ -267,14 +267,12 @@ func (h *Handler) ListCategories(c *gin.Context) {
 
 func (h *Handler) UpdateCategory(c *gin.Context) {
 	id := c.Param("id")
-	name := c.Param("name")
-	if name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Category name is required"})
-		return
-	}
 
-	category := domain.Category{
-		Name: name,
+	var category domain.Category
+
+	if err := c.ShouldBindJSON(&category); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
 	err := h.categoryUseCase.UpdateCategory(c.Request.Context(), id, &category)

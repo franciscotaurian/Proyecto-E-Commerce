@@ -10,6 +10,7 @@ import (
 func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
 	// Public routes
 	public := router.Group("/api/v1")
+	public.Use(middleware.CORSMiddleware())
 	{
 		public.POST("/register", handler.Register)
 		public.POST("/login", handler.Login)
@@ -21,7 +22,7 @@ func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
 
 	// Protected routes (require authentication)
 	protected := router.Group("/api/v1")
-	protected.Use(middleware.AuthMiddleware(jwtSecret))
+	protected.Use(middleware.AuthMiddleware(jwtSecret), middleware.CORSMiddleware())
 	{
 
 		protected.PUT("/profile", handler.UpdateProfile)
