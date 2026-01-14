@@ -105,6 +105,13 @@ func (uc *PaymentUseCase) ConfirmPayment(ctx context.Context, orderID string) er
 		return uc.EmailNotification(order, &userInformation)
 	}
 
+	// Clear user cart
+	err = uc.productClient.ClearUserCart(order.UserID)
+	if err != nil {
+		uc.logger.Error(fmt.Sprintf("Failed to clear user cart for order %s: %v", orderID, err))
+		return err
+	}
+
 	// Send order to Enviopack
 
 	return nil

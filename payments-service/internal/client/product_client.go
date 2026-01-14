@@ -113,3 +113,23 @@ func (c *ProductServiceClient) ConfirmPurchase(productID, color, size string, qu
 
 	return nil
 }
+
+func (c *ProductServiceClient) ClearUserCart(userID string) error {
+	req, err := http.NewRequest(http.MethodDelete, c.baseURL+"/internal/cart/clear/"+userID, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create delete request: %w", err)
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to clear user cart: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to clear user cart: %s", string(bodyBytes))
+	}
+
+	return nil
+}

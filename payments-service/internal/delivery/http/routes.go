@@ -8,16 +8,18 @@ import (
 
 // SetupRoutes configures all HTTP routes for the payments service
 func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
+	// Apply CORS middleware globally to handle preflight requests
+	router.Use(middleware.CORSMiddleware())
+
 	// Public routes
 	public := router.Group("/api/v1")
-	public.Use(middleware.CORSMiddleware())
 	{
 		public.POST("/webhook/mercadopago", handler.MercadoPagoWebhook)
 	}
 
 	// Protected routes (require authentication)
 	protected := router.Group("/api/v1")
-	protected.Use(middleware.AuthMiddleware(jwtSecret), middleware.CORSMiddleware())
+	protected.Use(middleware.AuthMiddleware(jwtSecret))
 	{
 		protected.POST("/checkout", handler.CreateOrder)
 		protected.GET("/orders", handler.GetUserOrders)
@@ -27,7 +29,7 @@ func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
 	}
 
 	protectedAdmin := router.Group("/api/v1/admin")
-	protectedAdmin.Use(middleware.AuthAdminMiddleware(jwtSecret), middleware.CORSMiddleware())
+	protectedAdmin.Use(middleware.AuthAdminMiddleware(jwtSecret))
 	{
 		protectedAdmin.GET("/orders/:id", handler.FindByID)
 		protectedAdmin.GET("/orders/status/:status", handler.FindByShippingStatus)

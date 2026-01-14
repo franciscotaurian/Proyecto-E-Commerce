@@ -79,9 +79,6 @@ func (o *Order) Validate() error {
 	if o.ShippingMethod == "" {
 		return errors.New("Shipping method required")
 	}
-	if o.TotalAmount <= 0 {
-		return errors.New("total amount must be greater than 0")
-	}
 	if o.ShippingAddress.Street == "" {
 		return errors.New("shipping address is required")
 	}

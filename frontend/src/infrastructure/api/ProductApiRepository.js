@@ -8,10 +8,11 @@ export class ProductApiRepository extends IProductRepository {
     async getProducts(filters = {}) {
         try {
             const params = new URLSearchParams();
+            if (filters.category) {
+                var categoryminuscula = filters.category.toLowerCase();
+                params.append('category', categoryminuscula);
+            }
 
-            var categoryminuscula = filters.category.toLowerCase();
-
-            if (filters.category) params.append('category', categoryminuscula);
             if (filters.minPrice) params.append('min_price', filters.minPrice);
             if (filters.maxPrice) params.append('max_price', filters.maxPrice);
             if (filters.page) params.append('page', filters.page);

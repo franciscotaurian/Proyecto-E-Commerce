@@ -8,9 +8,11 @@ import (
 
 // SetupRoutes configures all HTTP routes for the users service
 func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
+	// Apply CORS middleware globally to handle preflight requests
+	router.Use(middleware.CORSMiddleware())
+
 	// Public routes
 	public := router.Group("/api/v1")
-	public.Use(middleware.CORSMiddleware())
 	{
 		public.POST("/register", handler.Register)
 		public.POST("/login", handler.Login)
@@ -22,7 +24,7 @@ func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
 
 	// Protected routes (require authentication)
 	protected := router.Group("/api/v1")
-	protected.Use(middleware.AuthMiddleware(jwtSecret), middleware.CORSMiddleware())
+	protected.Use(middleware.AuthMiddleware(jwtSecret))
 	{
 
 		protected.PUT("/profile", handler.UpdateProfile)

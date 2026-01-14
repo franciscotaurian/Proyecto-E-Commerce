@@ -443,3 +443,19 @@ func (h *Handler) ClearCart(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Cart cleared successfully"})
 }
+
+func (h *Handler) ClearUserCart(c *gin.Context) {
+	userID := c.Param("user_id")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	err := h.cartUseCase.ClearCart(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Cart cleared successfully"})
+}

@@ -10,9 +10,11 @@ import (
 
 // SetupRoutes configures all HTTP routes for the products service
 func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
+	// Apply CORS middleware globally to handle preflight requests
+	router.Use(middleware.CORSMiddleware())
+
 	// Public routes
 	public := router.Group("/api/v1")
-	public.Use(middleware.CORSMiddleware())
 	{
 		public.GET("/products", handler.ListProducts)
 		public.GET("/products/:id", handler.GetProduct)
@@ -22,7 +24,7 @@ func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
 
 	// Admin routes (should have auth middleware in production)
 	admin := router.Group("/api/v1/admin")
-	admin.Use(middleware.AuthAdminMiddleware(jwtSecret), middleware.CORSMiddleware())
+	admin.Use(middleware.AuthAdminMiddleware(jwtSecret))
 	{
 		admin.POST("/products", handler.CreateProduct)
 		admin.PUT("/products/:id", handler.UpdateProduct)
@@ -38,11 +40,12 @@ func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
 		internal.POST("/reserve", handler.ReserveStock)
 		internal.POST("/release", handler.ReleaseStock)
 		internal.POST("/confirm", handler.ConfirmPurchase)
+		internal.DELETE("/cart/clear/:user_id", handler.ClearUserCart)
 	}
 
 	// Cart routes (protected)
 	cartRoutes := router.Group("/api/v1/cart") // Assuming cart routes are also under /api/v1
-	cartRoutes.Use(middleware.AuthMiddleware(jwtSecret), middleware.CORSMiddleware())
+	cartRoutes.Use(middleware.AuthMiddleware(jwtSecret))
 	{
 		cartRoutes.GET("", handler.GetCart)
 		cartRoutes.POST("/items", handler.AddToCart)
