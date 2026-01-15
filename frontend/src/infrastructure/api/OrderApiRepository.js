@@ -7,9 +7,11 @@ export class OrderApiRepository extends IOrderRepository {
     async createOrder(orderData) {
         try {
             const response = await paymentsClient.post('/api/v1/checkout', {
+
                 items: orderData.items.map(item => ({
                     product_id: item.productId,
                     product_name: item.productName,
+                    image_url: item.imageUrl,
                     color: item.color,
                     size: item.size,
                     quantity: item.quantity,
@@ -37,7 +39,12 @@ export class OrderApiRepository extends IOrderRepository {
     async getUserOrders() {
         try {
             const response = await paymentsClient.get('/api/v1/orders');
-            return response.data.map(o => new Order(o));
+
+            if (response.data.orders === null) {
+                return [];
+            }
+
+            return response.data.orders.map(o => new Order(o));
         } catch (error) {
             throw new Error(`Failed to fetch orders: ${error.message}`);
         }

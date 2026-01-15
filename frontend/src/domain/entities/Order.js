@@ -5,6 +5,7 @@ export class OrderItem {
     constructor(data = {}) {
         this.productId = data.product_id || data.productId || '';
         this.productName = data.product_name || data.productName || '';
+        this.productImage = data.image_url || data.product_image || data.productImage || '';
         this.color = data.color || '';
         this.size = data.size || '';
         this.quantity = data.quantity || 1;

@@ -33,6 +33,7 @@ const (
 type OrderItem struct {
 	ProductID   string  `bson:"product_id" json:"product_id"`
 	ProductName string  `bson:"product_name" json:"product_name"`
+	ImageURL    string  `bson:"image_url" json:"image_url"`
 	Color       string  `bson:"color" json:"color"`
 	Size        string  `bson:"size" json:"size"`
 	Quantity    int     `bson:"quantity" json:"quantity"`

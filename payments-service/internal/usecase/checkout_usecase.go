@@ -120,8 +120,8 @@ func (uc *CheckoutUseCase) releaseAllStock(items []domain.OrderItem) {
 }
 
 // GetOrder retrieves an order by ID
-func (uc *CheckoutUseCase) GetOrder(ctx context.Context, orderID string) (*domain.Order, error) {
-	return uc.orderRepo.FindByOrderID(ctx, orderID)
+func (uc *CheckoutUseCase) GetOrder(ctx context.Context, _id string) (*domain.Order, error) {
+	return uc.orderRepo.FindByID(ctx, _id)
 }
 
 // GetUserOrders retrieves all orders for a user

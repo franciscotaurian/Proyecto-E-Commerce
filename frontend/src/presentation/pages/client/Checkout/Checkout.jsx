@@ -48,13 +48,22 @@ export const Checkout = () => {
         try {
             setLoading(true);
             const order = await OrderApiRepository.createOrder({
-                items: cart.items,
+                items: cart.items.map(item => ({
+                    productId: item.productId,
+                    productName: item.productName,
+                    imageUrl: item.image,
+                    color: item.color,
+                    size: item.size,
+                    quantity: item.quantity,
+                    price: item.price,
+                })),
                 shippingMethod,
                 shippingAddress,
             });
 
             // Redirect to MercadoPago
             if (order.paymentUrl) {
+                alert('Orden creada exitosamente');
                 window.location.href = order.paymentUrl;
             } else {
                 navigate(`/payment-confirmation/${order.orderId}`);

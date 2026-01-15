@@ -101,9 +101,7 @@ func (uc *PaymentUseCase) ConfirmPayment(ctx context.Context, orderID string) er
 	}
 
 	// Send notification based on shipping method
-	if order.ShippingMethod == domain.ShippingMethodSend {
-		return uc.EmailNotification(order, &userInformation)
-	}
+	uc.EmailNotification(order, &userInformation)
 
 	// Clear user cart
 	err = uc.productClient.ClearUserCart(order.UserID)
