@@ -60,11 +60,11 @@ export const Cart = () => {
     };
 
     // Handle item removal
-    const handleRemove = async (productId) => {
+    const handleRemove = async (productId, productSize, productColor) => {
         if (!confirm('¿Estás seguro de eliminar este producto del carrito?')) return;
 
         try {
-            await removeFromCart(productId);
+            await removeFromCart(productId, productSize, productColor);
         } catch (error) {
             console.error('Error removing item:', error);
             alert('Error al eliminar el producto');
@@ -239,7 +239,7 @@ export const Cart = () => {
 
                                                 {/* Remove Button */}
                                                 <button
-                                                    onClick={() => handleRemove(item.productId)}
+                                                    onClick={() => handleRemove(item.productId, item.size, item.color)}
                                                     disabled={isUpdating}
                                                     className="text-sm text-red-600 hover:text-red-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >

@@ -59,10 +59,10 @@ export const CartProvider = ({ children }) => {
         }
     }, []);
 
-    const removeFromCart = useCallback(async (productId) => {
+    const removeFromCart = useCallback(async (productId, productSize, productColor) => {
         try {
             setLoading(true);
-            const updatedCart = await CartApiRepository.removeFromCart(productId);
+            const updatedCart = await CartApiRepository.removeFromCart(productId, productSize, productColor);
             setCart(updatedCart);
             return updatedCart;
         } catch (error) {

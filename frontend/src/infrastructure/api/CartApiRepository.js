@@ -40,9 +40,9 @@ export class CartApiRepository extends ICartRepository {
         }
     }
 
-    async removeFromCart(productId) {
+    async removeFromCart(productId, productSize, productColor) {
         try {
-            const response = await productsClient.delete(`/api/v1/cart/items/${productId}`);
+            const response = await productsClient.delete(`/api/v1/cart/items/${productId}/${productSize}/${productColor}`);
             return new Cart(response.data.cart);
         } catch (error) {
             throw new Error(`Failed to remove item from cart: ${error.message}`);

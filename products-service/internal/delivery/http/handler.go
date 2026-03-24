@@ -405,8 +405,8 @@ func (h *Handler) RemoveFromCart(c *gin.Context) {
 	}
 
 	productID := c.Param("productID")
-	color := c.Query("color")
-	size := c.Query("size")
+	color := c.Param("color")
+	size := c.Param("size")
 
 	if color == "" || size == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "color and size query parameters are required"})

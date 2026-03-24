@@ -50,7 +50,7 @@ func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
 		cartRoutes.GET("", handler.GetCart)
 		cartRoutes.POST("/items", handler.AddToCart)
 		cartRoutes.PUT("/items/:productID", handler.UpdateCartItem)
-		cartRoutes.DELETE("/items/:productID", handler.RemoveFromCart)
+		cartRoutes.DELETE("/items/:productID/:size/:color", handler.RemoveFromCart)
 		cartRoutes.DELETE("", handler.ClearCart)
 	}
 
