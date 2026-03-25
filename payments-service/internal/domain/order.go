@@ -38,6 +38,7 @@ type OrderItem struct {
 	Size        string  `bson:"size" json:"size"`
 	Quantity    int     `bson:"quantity" json:"quantity"`
 	Price       float64 `bson:"price" json:"price"`
+	Weight      float64 `bson:"weight" json:"weight"`
 }
 
 type Address struct {
@@ -57,12 +58,13 @@ type Order struct {
 	OrderID             string             `bson:"order_id" json:"order_id"`
 	UserID              string             `bson:"user_id" json:"user_id"`
 	Items               []OrderItem        `bson:"items" json:"items"`
+	Weight              float64            `bson:"package" json:"package"`
 	TotalAmount         float64            `bson:"total_amount" json:"total_amount"`
 	Status              OrderStatus        `bson:"status" json:"status"`
 	ShippingMethod      string             `bson:"shipping_method" json:"shipping_method"`
 	ShippingStatus      string             `bson:"shipping_status" json:"shipping_status"`
 	ShippingAddress     Address            `bson:"shipping_address" json:"shipping_address"`
-	EnvioPackID         string             `bson:"enviopack_id,omitempty" json:"enviopack_id,omitempty"`
+	AndreaniTrackID     string             `bson:"andreani_id,omitempty" json:"andreani_id,omitempty"`
 	PaymentURL          string             `bson:"payment_url,omitempty" json:"payment_url,omitempty"`
 	ProcessedPaymentIDs []string           `bson:"processed_payment_ids,omitempty" json:"processed_payment_ids,omitempty"`
 	CreatedAt           time.Time          `bson:"created_at" json:"created_at"`

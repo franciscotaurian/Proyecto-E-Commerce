@@ -20,6 +20,7 @@ type CheckoutUseCase struct {
 	productClient     *client.ProductServiceClient
 	mercadoPagoClient *client.MercadoPagoClient
 	reservationWorker *worker.ReservationWorker
+	envioUseCase      *EnvioUseCase
 	logger            *logger.InternalLogger
 	webhookURL        string
 }
@@ -30,6 +31,7 @@ func NewCheckoutUseCase(
 	productClient *client.ProductServiceClient,
 	mercadoPagoClient *client.MercadoPagoClient,
 	reservationWorker *worker.ReservationWorker,
+	envioUseCase *EnvioUseCase,
 	log *logger.InternalLogger,
 	webhookURL string,
 ) *CheckoutUseCase {
@@ -38,6 +40,7 @@ func NewCheckoutUseCase(
 		productClient:     productClient,
 		mercadoPagoClient: mercadoPagoClient,
 		reservationWorker: reservationWorker,
+		envioUseCase:      envioUseCase,
 		logger:            log,
 		webhookURL:        webhookURL,
 	}
@@ -49,7 +52,6 @@ func (uc *CheckoutUseCase) CreateOrder(ctx context.Context, order *domain.Order)
 	if err := order.Validate(); err != nil {
 		return err
 	}
-
 	// Calculate total
 	order.CalculateTotal()
 
@@ -71,10 +73,32 @@ func (uc *CheckoutUseCase) CreateOrder(ctx context.Context, order *domain.Order)
 		uc.logger.Info(fmt.Sprintf("Reserved stock for product %s", item.ProductID))
 	}
 
+	totalWeight := 0.0
+	for _, item := range order.Items {
+		totalWeight += item.Weight * float64(item.Quantity)
+	}
+
+	order.Weight = totalWeight
+
+	/*
+		quotationRequest := domain.Quotation{
+			ZipCodeDestination: order.ShippingAddress.ZipCode,
+			Weight:             strconv.FormatFloat(totalWeight, 'f', 2, 64),
+			Dimensions:         strconv.Itoa(30),
+			DeclaredValue:      strconv.FormatFloat(order.TotalAmount, 'f', 2, 64),
+		}
+
+
+		cotizacionEnvio, err := uc.envioUseCase.GetQuotation(ctx, &quotationRequest)
+		if err != nil {
+			return fmt.Errorf("failed to get shipping quotation: %w", err)
+		}*/
+
 	// Step 2: Create order in database
 	err := uc.orderRepo.Create(ctx, order)
 	if err != nil {
 		uc.releaseAllStock(order.Items)
+		uc.logger.Error(fmt.Sprintf("Failed to create order: %v", err))
 		return fmt.Errorf("failed to create order: %w", err)
 	}
 
@@ -91,6 +115,20 @@ func (uc *CheckoutUseCase) CreateOrder(ctx context.Context, order *domain.Order)
 			Description: fmt.Sprintf("Color: %s, Size: %s", item.Color, item.Size),
 		}
 	}
+
+	/*
+		shipCost, err := strconv.ParseFloat(cotizacionEnvio.ShipCost, 64)
+		if err != nil {
+			return fmt.Errorf("failed to parse shipping cost: %w", err)
+		}
+
+		items = append(items, client.PreferenceItem{
+			Title:       "Envio",
+			Quantity:    1,
+			UnitPrice:   shipCost,
+			Description: "Envio a domicilio",
+		})
+	*/
 
 	paymentURL, err := uc.mercadoPagoClient.CreatePreference(order.OrderID, items, uc.webhookURL)
 	if err != nil {

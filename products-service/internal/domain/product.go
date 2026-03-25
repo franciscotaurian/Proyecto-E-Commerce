@@ -43,6 +43,7 @@ type Product struct {
 	Price       float64            `bson:"price" json:"price"`
 	Images      []string           `bson:"images" json:"images"`
 	Variants    []StockVariant     `bson:"variants" json:"variants"`
+	Weight      float64            `bson:"weight" json:"weight"`
 	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
 	UpdatedAt   time.Time          `bson:"updated_at" json:"updated_at"`
 }

@@ -15,15 +15,33 @@ type Handler struct {
 	checkoutUseCase *usecase.CheckoutUseCase
 	paymentUseCase  *usecase.PaymentUseCase
 	managerUseCase  *usecase.ManagerUseCase
+	envioUseCase    *usecase.EnvioUseCase
 }
 
 // NewHandler creates a new HTTP handler
-func NewHandler(checkoutUseCase *usecase.CheckoutUseCase, paymentUseCase *usecase.PaymentUseCase, managerUseCase *usecase.ManagerUseCase) *Handler {
+func NewHandler(checkoutUseCase *usecase.CheckoutUseCase, paymentUseCase *usecase.PaymentUseCase, managerUseCase *usecase.ManagerUseCase, envioUseCase *usecase.EnvioUseCase) *Handler {
 	return &Handler{
 		checkoutUseCase: checkoutUseCase,
 		paymentUseCase:  paymentUseCase,
 		managerUseCase:  managerUseCase,
+		envioUseCase:    envioUseCase,
 	}
+}
+
+func (h *Handler) GetQuotation(c *gin.Context) {
+	var quotationRequest domain.Quotation
+	if err := c.ShouldBindJSON(&quotationRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	quotationResponse, err := h.envioUseCase.GetQuotation(c.Request.Context(), &quotationRequest)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, quotationResponse)
 }
 
 // CreateOrder handles order creation (checkout)

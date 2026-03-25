@@ -18,10 +18,10 @@ type PaymentUseCase struct {
 	orderRepo            repository.OrderRepository
 	productClient        *client.ProductServiceClient
 	userClient           *client.UserClient
-	envioPackClient      *client.EnvioPackClient
 	mercadoPagoClient    *client.MercadoPagoClient
 	reservationWorker    *worker.ReservationWorker
 	notificationProducer *messaging.NotificationProducer
+	envioUseCase         *EnvioUseCase
 	logger               *logger.InternalLogger
 }
 
@@ -30,20 +30,20 @@ func NewPaymentUseCase(
 	orderRepo repository.OrderRepository,
 	productClient *client.ProductServiceClient,
 	userClient *client.UserClient,
-	envioPackClient *client.EnvioPackClient,
 	mercadoPagoClient *client.MercadoPagoClient,
 	reservationWorker *worker.ReservationWorker,
 	notificationProducer *messaging.NotificationProducer,
+	envioUseCase *EnvioUseCase,
 	log *logger.InternalLogger,
 ) *PaymentUseCase {
 	return &PaymentUseCase{
 		orderRepo:            orderRepo,
 		productClient:        productClient,
 		userClient:           userClient,
-		envioPackClient:      envioPackClient,
 		mercadoPagoClient:    mercadoPagoClient,
 		reservationWorker:    reservationWorker,
 		notificationProducer: notificationProducer,
+		envioUseCase:         envioUseCase,
 		logger:               log,
 	}
 }
@@ -110,7 +110,14 @@ func (uc *PaymentUseCase) ConfirmPayment(ctx context.Context, orderID string) er
 		return err
 	}
 
-	// Send order to Enviopack
+	/* Send order to Andreani
+	orderResponse, err := uc.envioUseCase.CreateOrder(ctx, order, userInformation)
+	if err != nil {
+		uc.logger.Error(fmt.Sprintf("Failed to create order for order %s: %v", orderID, err))
+		return err
+	}
+
+	//actualizar orden con numero de seguimiento*/
 
 	return nil
 }
