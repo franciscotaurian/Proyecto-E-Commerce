@@ -44,6 +44,7 @@ type PreferenceRequest struct {
 	ExternalReference string           `json:"external_reference"`
 	BackURLs          BackURLs         `json:"back_urls,omitempty"`
 	NotificationURL   string           `json:"notification_url,omitempty"`
+	AutoReturn        string           `json:"auto_return,omitempty"`
 }
 
 // BackURLs represents callback URLs
@@ -94,6 +95,7 @@ func (c *MercadoPagoClient) CreatePreference(orderID string, items []PreferenceI
 		Items:             items,
 		ExternalReference: orderID,
 		NotificationURL:   notificationURL,
+		AutoReturn:        "approved",
 		BackURLs: BackURLs{
 			Success: c.successURL,
 			Failure: c.failureURL,

@@ -12,6 +12,7 @@ import ProductDetail from '../pages/client/ProductDetail/ProductDetail.jsx';
 import Cart from '../pages/client/Cart/Cart.jsx';
 import Checkout from '../pages/client/Checkout/Checkout.jsx';
 import PaymentConfirmation from '../pages/client/PaymentConfirmation/PaymentConfirmation.jsx';
+import PaymentSuccess from '../pages/client/PaymentSuccess/PaymentSuccess.jsx';
 import Profile from '../pages/client/Profile/Profile.jsx';
 import Login from '../pages/client/Auth/Login.jsx';
 import Register from '../pages/client/Auth/Register.jsx';
@@ -40,6 +41,7 @@ export const AppRouter = () => {
                     <Route path="cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
                     <Route path="checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
                     <Route path="payment-confirmation/:orderId" element={<ProtectedRoute><PaymentConfirmation /></ProtectedRoute>} />
+                    <Route path="payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
                     <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                     <Route path="my-orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
                     <Route path="orders/:orderId" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />

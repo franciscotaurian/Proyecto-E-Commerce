@@ -70,8 +70,8 @@ export class OrderApiRepository extends IOrderRepository {
 
     async sendWhatsAppNotification(orderId) {
         try {
-            await paymentsClient.get(`/api/v1/orders/whatsapp/${orderId}`);
-            return true;
+            const response = await paymentsClient.get(`/api/v1/orders/whatsapp/${orderId}`);
+            return response.data.whatsapp_url;
         } catch (error) {
             throw new Error(`Failed to send WhatsApp notification: ${error.message}`);
         }

@@ -117,7 +117,13 @@ func (uc *PaymentUseCase) ConfirmPayment(ctx context.Context, orderID string) er
 		return err
 	}
 
-	//actualizar orden con numero de seguimiento*/
+	//actualizar orden con numero de seguimiento
+	err = uc.orderRepo.UpdateTrackingNumber(ctx, orderID, orderResponse.EtiquetasPorAgrupador)
+	if err != nil {
+		uc.logger.Error(fmt.Sprintf("Failed to update tracking number for order %s: %v", orderID, err))
+		return err
+	}
+	*/
 
 	return nil
 }

@@ -29,11 +29,12 @@ func main() {
 	mercadoPagoToken := getEnv("MERCADOPAGO_ACCESS_TOKEN", "TEST-ACCESS-TOKEN")
 	AndreaniToken := getEnv("ANDREANI_TOKEN", "TEST-TOKEN")
 	webhookURL := getEnv("WEBHOOK_URL", "http://localhost:8083/api/v1/webhook/mercadopago")
+	frontendURL := getEnv("FRONTEND_URL", "http://localhost:5173")
 
-	// Mercado Pago redirect URLs
-	mercadoPagoSuccessURL := getEnv("MERCADOPAGO_SUCCESS_URL", "http://localhost:3000/pago-exitoso")
-	mercadoPagoFailureURL := getEnv("MERCADOPAGO_FAILURE_URL", "http://localhost:3000/pago-fallido")
-	mercadoPagoPendingURL := getEnv("MERCADOPAGO_PENDING_URL", "http://localhost:3000/pago-pendiente")
+	// Mercado Pago redirect URLs - point to backend redirect endpoints (same ngrok tunnel)
+	mercadoPagoSuccessURL := getEnv("MERCADOPAGO_SUCCESS_URL", "http://localhost:8083/payment/success")
+	mercadoPagoFailureURL := getEnv("MERCADOPAGO_FAILURE_URL", "http://localhost:8083/payment/failure")
+	mercadoPagoPendingURL := getEnv("MERCADOPAGO_PENDING_URL", "http://localhost:8083/payment/pending")
 
 	// Initialize logger
 	internalLogger, err := logger.NewInternalLogger("payments-service", rabbitMQURL)
@@ -120,7 +121,7 @@ func main() {
 	router.Use(middleware.LoggingMiddleware(internalLogger))
 
 	// Setup routes
-	http.SetupRoutes(router, handler, jwtSecret)
+	http.SetupRoutes(router, handler, jwtSecret, frontendURL)
 
 	internalLogger.Info("Payments service started on port " + port)
 

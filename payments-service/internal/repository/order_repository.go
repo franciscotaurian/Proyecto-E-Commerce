@@ -27,6 +27,7 @@ type OrderRepository interface {
 	Update(ctx context.Context, order *domain.Order) error
 	HasProcessedPaymentID(ctx context.Context, orderID string, paymentID string) (bool, error)
 	AddProcessedPaymentID(ctx context.Context, orderID string, paymentID string) error
+	UpdateTrackingNumber(ctx context.Context, orderID string, trackingNumber string) error
 }
 
 // MongoOrderRepository implements OrderRepository using MongoDB
@@ -179,6 +180,27 @@ func (r *MongoOrderRepository) AddProcessedPaymentID(ctx context.Context, orderI
 		},
 		"$set": bson.M{
 			"updated_at": time.Now(),
+		},
+	}
+
+	result, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+
+	if result.MatchedCount == 0 {
+		return ErrOrderNotFound
+	}
+
+	return nil
+}
+
+func (r *MongoOrderRepository) UpdateTrackingNumber(ctx context.Context, orderID string, trackingNumber string) error {
+	filter := bson.M{"order_id": orderID}
+	update := bson.M{
+		"$set": bson.M{
+			"tracking_number": trackingNumber,
+			"updated_at":      time.Now(),
 		},
 	}
 

@@ -103,6 +103,7 @@ services:
       - MERCADOPAGO_SUCCESS_URL=${MERCADOPAGO_SUCCESS_URL:-http://localhost:5173/home}
       - MERCADOPAGO_FAILURE_URL=${MERCADOPAGO_FAILURE_URL:-http://localhost:5173/home}
       - MERCADOPAGO_PENDING_URL=${MERCADOPAGO_PENDING_URL:-http://localhost:5173/home}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
       - ENVIOPACK_API_KEY=TEST-API-KEY
       - WEBHOOK_URL=https://tularemic-unintermissive-shawnda.ngrok-free.dev/api/v1/webhook/mercadopago
       - PORT=8080
