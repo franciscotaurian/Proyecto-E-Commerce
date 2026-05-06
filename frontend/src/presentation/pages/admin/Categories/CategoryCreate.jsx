@@ -111,13 +111,13 @@ export const CategoryCreate = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (category) => {
         if (window.confirm('¿Estás seguro de que deseas eliminar esta categoría?')) {
             try {
-                await productApi.deleteCategory(id);
+                await productApi.deleteCategory(category.name);
                 alert('Categoría eliminada');
                 fetchCategories();
-                if (editingId === id) resetForm();
+                if (editingId === category.id) resetForm();
             } catch (error) {
                 console.error('Error al eliminar categoría:', error);
                 alert('Hubo un error al eliminar la categoría.');
@@ -246,7 +246,7 @@ export const CategoryCreate = () => {
                                             <FiEdit2 size={20} />
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(category.id)}
+                                            onClick={() => handleDelete(category)}
                                             className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-md transition-colors"
                                             title="Eliminar"
                                         >

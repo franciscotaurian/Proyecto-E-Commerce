@@ -110,9 +110,9 @@ export class ProductApiRepository extends IProductRepository {
         }
     }
 
-    async deleteCategory(id) {
+    async deleteCategory(name) {
         try {
-            await productsClient.delete(`/api/v1/admin/categories/${id}`);
+            await productsClient.delete(`/api/v1/admin/categories/${name}`);
             return true;
         } catch (error) {
             throw new Error(`Failed to delete category: ${error.message}`);

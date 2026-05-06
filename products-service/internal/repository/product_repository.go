@@ -27,6 +27,7 @@ type ProductRepository interface {
 	FindAll(ctx context.Context, page, limit int) ([]domain.Product, int64, error)
 	Update(ctx context.Context, product *domain.Product) error
 	Delete(ctx context.Context, id string) error
+	FindByCategoryName(ctx context.Context, categoryName string) ([]domain.Product, error)
 	ReserveStock(ctx context.Context, productID, color, size string, quantity int) error
 	ReleaseStock(ctx context.Context, productID, color, size string, quantity int) error
 	DeductStock(ctx context.Context, productID, color, size string, quantity int) error
@@ -277,4 +278,19 @@ func (r *MongoProductRepository) DeductStock(ctx context.Context, productID, col
 	}
 
 	return nil
+}
+
+func (r *MongoProductRepository) FindByCategoryName(ctx context.Context, categoryName string) ([]domain.Product, error) {
+	var products []domain.Product
+	cursor, err := r.collection.Find(ctx, bson.M{"category": categoryName})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	if err = cursor.All(ctx, &products); err != nil {
+		return nil, err
+	}
+
+	return products, nil
 }

@@ -85,3 +85,7 @@ func (uc *ProductUseCase) ConfirmPurchase(ctx context.Context, productID, color,
 	}
 	return uc.productRepo.DeductStock(ctx, productID, color, size, quantity)
 }
+
+func (uc *ProductUseCase) ListProductsByCategoryName(ctx context.Context, categoryName string) ([]domain.Product, error) {
+	return uc.productRepo.FindByCategoryName(ctx, categoryName)
+}

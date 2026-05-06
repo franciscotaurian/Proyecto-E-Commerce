@@ -281,6 +281,13 @@ func (h *Handler) UpdateCategory(c *gin.Context) {
 		return
 	}
 
+	// Re-index all products that have been updated with the new category
+	if products, err := h.productUseCase.ListProductsByCategoryName(c.Request.Context(), category.Name); err == nil {
+		for i := range products {
+			h.searchUseCase.IndexProduct(&products[i])
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"message":  "Category updated successfully",
 		"category": category,
@@ -288,9 +295,9 @@ func (h *Handler) UpdateCategory(c *gin.Context) {
 }
 
 func (h *Handler) DeleteCategory(c *gin.Context) {
-	id := c.Param("id")
+	name := c.Param("name")
 
-	err := h.categoryUseCase.DeleteCategory(c.Request.Context(), id)
+	err := h.categoryUseCase.DeleteCategory(c.Request.Context(), name)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

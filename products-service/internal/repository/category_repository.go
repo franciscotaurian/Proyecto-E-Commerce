@@ -20,6 +20,7 @@ type CategoryRepository interface {
 	FindCategoryByName(ctx context.Context, name string) (*domain.Category, error)
 	UpdateCategory(ctx context.Context, id string, category *domain.Category) error
 	DeleteCategory(ctx context.Context, id string) error
+	FindByID(ctx context.Context, id string) (*domain.Category, error)
 }
 
 func NewMongoCategoryRepository(db *mongo.Database) CategoryRepository {
@@ -104,4 +105,21 @@ func (r *MongoCategoryRepository) DeleteCategory(ctx context.Context, id string)
 	}
 
 	return nil
+}
+
+func (r *MongoCategoryRepository) FindByID(ctx context.Context, id string) (*domain.Category, error) {
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, ErrCategoryNotFound
+	}
+
+	var category domain.Category
+	err = r.collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&category)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, ErrCategoryNotFound
+		}
+		return nil, err
+	}
+	return &category, nil
 }

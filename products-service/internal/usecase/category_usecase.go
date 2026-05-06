@@ -50,21 +50,49 @@ func (uc *CategoryUseCase) UpdateCategory(ctx context.Context, id string, catego
 		return errors.New("category image is required")
 	}
 
-	return uc.categoryRepo.UpdateCategory(ctx, id, category)
-}
+	// Busca la categoría por id y verifica que exista antes de actualizar
 
-func (uc *CategoryUseCase) DeleteCategory(ctx context.Context, id string) error {
-	if id == "" {
-		return errors.New("category id is required")
-	}
-	
-	products, err := uc.productsRepo.FindByCategoryId(ctx, id)
+	existingCategory, err := uc.categoryRepo.FindByID(ctx, id)
 	if err != nil {
 		return err
 	}
+
+	if existingCategory == nil {
+		return errors.New("category not found")
+	}
+
+	// actualización del nombre de categoria en los productos asociados
+	// Buscar productos con el nombre antiguo
+	products, err := uc.productsRepo.FindByCategoryName(ctx, existingCategory.Name)
+	if err != nil {
+		return err
+	}
+
+	for _, product := range products {
+		// Actualizar producto con el nuevo nombre
+		product.Category = category.Name
+		err = uc.productsRepo.Update(ctx, &product)
+		if err != nil {
+			return err
+		}
+	}
+
+	return uc.categoryRepo.UpdateCategory(ctx, id, category)
+}
+
+func (uc *CategoryUseCase) DeleteCategory(ctx context.Context, name string) error {
+	if name == "" {
+		return errors.New("category name is required")
+	}
+
+	products, err := uc.productsRepo.FindByCategoryName(ctx, name)
+	if err != nil {
+		return err
+	}
+
 	if len(products) > 0 {
 		return errors.New("category has products")
 	}
 
-	return uc.categoryRepo.DeleteCategory(ctx, id)
+	return uc.categoryRepo.DeleteCategory(ctx, name)
 }
