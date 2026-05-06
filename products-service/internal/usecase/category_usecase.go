@@ -9,11 +9,13 @@ import (
 
 type CategoryUseCase struct {
 	categoryRepo repository.CategoryRepository
+	productsRepo repository.ProductRepository
 }
 
-func NewCategoryUseCase(categoryRepo repository.CategoryRepository) *CategoryUseCase {
+func NewCategoryUseCase(categoryRepo repository.CategoryRepository, productsRepo repository.ProductRepository) *CategoryUseCase {
 	return &CategoryUseCase{
 		categoryRepo: categoryRepo,
+		productsRepo: productsRepo,
 	}
 }
 
@@ -55,5 +57,14 @@ func (uc *CategoryUseCase) DeleteCategory(ctx context.Context, id string) error 
 	if id == "" {
 		return errors.New("category id is required")
 	}
+	
+	products, err := uc.productsRepo.FindByCategoryId(ctx, id)
+	if err != nil {
+		return err
+	}
+	if len(products) > 0 {
+		return errors.New("category has products")
+	}
+
 	return uc.categoryRepo.DeleteCategory(ctx, id)
 }

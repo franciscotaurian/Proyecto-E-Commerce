@@ -94,7 +94,7 @@ export class ProductApiRepository extends IProductRepository {
 
     async createCategory(categoryData) {
         try {
-            const response = await productsClient.post('/api/v1/categories', categoryData);
+            const response = await productsClient.post('/api/v1/admin/categories', categoryData);
             return new Category(response.data);
         } catch (error) {
             throw new Error(`Failed to create category: ${error.message}`);

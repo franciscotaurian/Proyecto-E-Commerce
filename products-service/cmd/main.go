@@ -48,7 +48,7 @@ func main() {
 
 	// Initialize use cases
 	productUseCase := usecase.NewProductUseCase(productRepo, categoryRepo)
-	categoryUseCase := usecase.NewCategoryUseCase(categoryRepo)
+	categoryUseCase := usecase.NewCategoryUseCase(categoryRepo, productRepo)
 	cartUseCase := usecase.NewCartUseCase(cartRepo, productRepo)
 	searchUseCase, err := usecase.NewSearchUseCase(productRepo)
 	if err != nil {
