@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"products-service/internal/client"
 	"products-service/internal/delivery/http"
 	"products-service/internal/repository"
 	"products-service/internal/usecase"
@@ -21,6 +22,17 @@ func main() {
 	rabbitMQURL := getEnv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
 	port := getEnv("PORT", "8080")
 	jwtSecret := getEnv("JWT_SECRET", "your-secret-key-change-in-production")
+	cfAccountID := getEnv("CF_ACCOUNT_ID", "")
+	cfAccessKeyID := getEnv("CF_ACCESS_KEY", "")
+	cfSecretAccessKey := getEnv("CF_SECRET_KEY", "")
+	cfBucketName := getEnv("CF_BUCKET_NAME", "")
+	cfS3Endpoint := getEnv("CF_S3_ENDPOINT", "")
+	cfPublicURL := getEnv("CF_PUBLICURL", "")
+
+	r2Client, err := client.NewR2Client(cfAccountID, cfAccessKeyID, cfSecretAccessKey, cfBucketName, cfS3Endpoint, cfPublicURL)
+	if err != nil {
+		log.Fatalf("Failed to initialize R2 client: %v", err)
+	}
 
 	// Initialize logger
 	internalLogger, err := logger.NewInternalLogger("products-service", rabbitMQURL)
@@ -47,8 +59,8 @@ func main() {
 	cartRepo := repository.NewMongoCartRepository(mongoClient.Database)
 
 	// Initialize use cases
-	productUseCase := usecase.NewProductUseCase(productRepo, categoryRepo)
-	categoryUseCase := usecase.NewCategoryUseCase(categoryRepo, productRepo)
+	productUseCase := usecase.NewProductUseCase(productRepo, categoryRepo, r2Client)
+	categoryUseCase := usecase.NewCategoryUseCase(categoryRepo, productRepo, r2Client)
 	cartUseCase := usecase.NewCartUseCase(cartRepo, productRepo)
 	searchUseCase, err := usecase.NewSearchUseCase(productRepo)
 	if err != nil {

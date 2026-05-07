@@ -2,7 +2,9 @@ package usecase
 
 import (
 	"context"
+	"strings"
 
+	"products-service/internal/client"
 	"products-service/internal/domain"
 	"products-service/internal/repository"
 )
@@ -11,13 +13,15 @@ import (
 type ProductUseCase struct {
 	productRepo  repository.ProductRepository
 	categoryRepo repository.CategoryRepository
+	r2Client     *client.R2Client
 }
 
 // NewProductUseCase creates a new product use case
-func NewProductUseCase(productRepo repository.ProductRepository, categoryRepo repository.CategoryRepository) *ProductUseCase {
+func NewProductUseCase(productRepo repository.ProductRepository, categoryRepo repository.CategoryRepository, r2Client *client.R2Client) *ProductUseCase {
 	return &ProductUseCase{
 		productRepo:  productRepo,
 		categoryRepo: categoryRepo,
+		r2Client:     r2Client,
 	}
 }
 
@@ -30,6 +34,18 @@ func (uc *ProductUseCase) CreateProduct(ctx context.Context, product *domain.Pro
 	if _, err := uc.categoryRepo.FindCategoryByName(ctx, product.Category); err != nil {
 		return err
 	}
+
+	// Carga de imágenes a R2
+	for i, img := range product.Images {
+		if strings.HasPrefix(img, "data:image") {
+			publicURL, err := uc.r2Client.UploadImage(ctx, img, "products")
+			if err != nil {
+				return err
+			}
+			product.Images[i] = publicURL
+		}
+	}
+
 	return uc.productRepo.Create(ctx, product)
 }
 
@@ -54,6 +70,18 @@ func (uc *ProductUseCase) UpdateProduct(ctx context.Context, product *domain.Pro
 	if err := product.Validate(); err != nil {
 		return err
 	}
+	
+	// Carga de imágenes a R2
+	for i, img := range product.Images {
+		if strings.HasPrefix(img, "data:image") {
+			publicURL, err := uc.r2Client.UploadImage(ctx, img, "products")
+			if err != nil {
+				return err
+			}
+			product.Images[i] = publicURL
+		}
+	}
+	
 	return uc.productRepo.Update(ctx, product)
 }
 

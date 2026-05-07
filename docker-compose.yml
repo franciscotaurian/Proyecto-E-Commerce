@@ -72,6 +72,12 @@ services:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
       - BLEVE_INDEX_PATH=/data/products.bleve
       - PORT=8080
+      - CF_ACCOUNT_ID=${CF_ACCOUNT_ID}
+      - CF_ACCESS_KEY=${CF_ACCESS_KEY}
+      - CF_SECRET_KEY=${CF_SECRET_KEY}
+      - CF_BUCKET_NAME=${CF_BUCKET_NAME}
+      - CF_S3_ENDPOINT=${CF_S3_ENDPOINT}
+      - CF_PUBLICURL=${CF_PUBLICURL}
     volumes:
       - products-index:/data
     depends_on:

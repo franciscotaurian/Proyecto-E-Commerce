@@ -3,6 +3,9 @@ package usecase
 import (
 	"context"
 	"errors"
+	"strings"
+
+	"products-service/internal/client"
 	"products-service/internal/domain"
 	"products-service/internal/repository"
 )
@@ -10,12 +13,14 @@ import (
 type CategoryUseCase struct {
 	categoryRepo repository.CategoryRepository
 	productsRepo repository.ProductRepository
+	r2Client     *client.R2Client
 }
 
-func NewCategoryUseCase(categoryRepo repository.CategoryRepository, productsRepo repository.ProductRepository) *CategoryUseCase {
+func NewCategoryUseCase(categoryRepo repository.CategoryRepository, productsRepo repository.ProductRepository, r2Client *client.R2Client) *CategoryUseCase {
 	return &CategoryUseCase{
 		categoryRepo: categoryRepo,
 		productsRepo: productsRepo,
+		r2Client:     r2Client,
 	}
 }
 
@@ -27,6 +32,14 @@ func (uc *CategoryUseCase) CreateCategory(ctx context.Context, category *domain.
 
 	if category.Image == "" {
 		return errors.New("category image is required")
+	}
+
+	if strings.HasPrefix(category.Image, "data:image") {
+		publicURL, err := uc.r2Client.UploadImage(ctx, category.Image, "categories")
+		if err != nil {
+			return err
+		}
+		category.Image = publicURL
 	}
 
 	return uc.categoryRepo.CreateCategory(ctx, category)
@@ -48,6 +61,14 @@ func (uc *CategoryUseCase) UpdateCategory(ctx context.Context, id string, catego
 
 	if category.Image == "" {
 		return errors.New("category image is required")
+	}
+
+	if strings.HasPrefix(category.Image, "data:image") {
+		publicURL, err := uc.r2Client.UploadImage(ctx, category.Image, "categories")
+		if err != nil {
+			return err
+		}
+		category.Image = publicURL
 	}
 
 	// Busca la categoría por id y verifica que exista antes de actualizar

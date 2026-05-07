@@ -1,6 +1,6 @@
 module products-service
 
-go 1.23.0
+go 1.24
 
 require (
 	github.com/blevesearch/bleve/v2 v2.3.10
@@ -12,6 +12,7 @@ require (
 
 require (
 	github.com/RoaringBitmap/roaring v1.2.3 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.41.7 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
 	github.com/blevesearch/bleve_index_api v1.0.6 // indirect
 	github.com/blevesearch/geo v0.1.18 // indirect

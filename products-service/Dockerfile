@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
@@ -14,9 +14,8 @@ WORKDIR /app/products-service
 
 # Copy service code
 COPY products-service/go.mod products-service/go.sum* ./
-RUN go mod download
-
 COPY products-service/ ./
+RUN go mod tidy
 
 # Build the application
 RUN CGO_ENABLED=1 GOOS=linux go build -o products-service ./cmd/main.go

@@ -54,7 +54,8 @@ export const CategoryCreate = () => {
                 setImages(prev => [...prev, {
                     file: file,
                     preview: URL.createObjectURL(file),
-                    base64: reader.result
+                    base64: reader.result,
+                    isUrl: false
                 }]);
             };
             reader.readAsDataURL(file);
@@ -73,11 +74,17 @@ export const CategoryCreate = () => {
             return;
         }
 
-        // Aunque se puedan cargar varias imágenes en la UI, el backend puede esperar un string 'image'
-        // Si hay varias, enviamos la primera en base64
+        // Aunque se puedan cargar varias imágenes en la UI, el backend espera un string 'image'.
+        // Si la imagen ya es una URL de R2 (edición sin nueva imagen), la enviamos tal cual.
+        // Si es una nueva imagen, enviamos el base64 para que el backend la suba a R2.
+        let imageValue = '';
+        if (images.length > 0) {
+            const firstImg = images[0];
+            imageValue = firstImg.isUrl ? firstImg.preview : (firstImg.base64 || firstImg.preview);
+        }
         const payload = {
             name: formData.name,
-            image: images.length > 0 ? (images[0].base64 || images[0].preview) : ''
+            image: imageValue
         };
 
         try {
@@ -104,7 +111,8 @@ export const CategoryCreate = () => {
         setEditingId(category.id);
         setFormData({ name: category.name });
         if (category.image) {
-            setImages([{ preview: category.image, base64: category.image }]);
+            // Marcar como URL existente (link de R2) para no tratarla como base64 al enviar
+            setImages([{ preview: category.image, base64: null, isUrl: true }]);
         } else {
             setImages([]);
         }
