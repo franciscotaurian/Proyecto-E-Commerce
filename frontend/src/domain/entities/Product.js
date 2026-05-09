@@ -6,6 +6,7 @@ export class Product {
         this.description = data.description || '';
         this.category = data.category || '';
         this.price = data.price || 0;
+        this.weight = data.weight || 0;
         this.images = data.images || [];
         this.variants = (data.variants || []).map(v => ({
             color: v.color,

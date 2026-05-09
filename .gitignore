@@ -2,6 +2,7 @@
 .env
 *.env
 !.env.example
+*.access
 
 # Ignore IDE and editor files
 .vscode/

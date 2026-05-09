@@ -7,7 +7,7 @@ export const AppProvider = ({ children }) => {
     return (
         <AuthProvider>
             <CartProvider>
-                {children} //children is the component that will be rendered
+                {children} {/* children is the component that will be rendered */}
             </CartProvider>
         </AuthProvider>
     );

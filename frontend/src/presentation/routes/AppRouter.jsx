@@ -21,7 +21,7 @@ import OrderDetail from '../pages/client/Orders/OrderDetail.jsx';
 
 // Admin Pages
 import AdminDashboard from '../pages/admin/Dashboard/AdminDashboard.jsx';
-import ProductEdit from '../pages/admin/Products/ProductEdit.jsx';
+import ProductList from '../pages/admin/Products/ProductEdit.jsx';
 import ProductCreate from '../pages/admin/Products/ProductCreate.jsx';
 import CategoryCreate from '../pages/admin/Categories/CategoryCreate.jsx';
 import SalesManagement from '../pages/admin/Sales/SalesManagement.jsx';
@@ -49,7 +49,7 @@ export const AppRouter = () => {
                     {/* Admin Routes */}
                     <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                     <Route path="admin/products/create" element={<AdminRoute><ProductCreate /></AdminRoute>} />
-                    <Route path="admin/products/:id/edit" element={<AdminRoute><ProductEdit /></AdminRoute>} />
+                    <Route path="admin/products" element={<AdminRoute><ProductList /></AdminRoute>} />
                     <Route path="admin/categories/create" element={<AdminRoute><CategoryCreate /></AdminRoute>} />
                     <Route path="admin/sales" element={<AdminRoute><SalesManagement /></AdminRoute>} />
                 </Route>
