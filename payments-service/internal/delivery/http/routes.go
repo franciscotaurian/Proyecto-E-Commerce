@@ -49,8 +49,10 @@ func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string, fronten
 	protectedAdmin := router.Group("/api/v1/admin")
 	protectedAdmin.Use(middleware.AuthAdminMiddleware(jwtSecret))
 	{
+		protectedAdmin.GET("/orders", handler.GetAllPaidOrders)
+		protectedAdmin.GET("/orders/status/:status", handler.FindByShippingStatus) // must be before /:id
 		protectedAdmin.GET("/orders/:id", handler.FindByID)
-		protectedAdmin.GET("/orders/status/:status", handler.FindByShippingStatus)
+		protectedAdmin.PUT("/orders/:id/shipped", handler.UpdateShippingStatus)
 	}
 
 	// Health check

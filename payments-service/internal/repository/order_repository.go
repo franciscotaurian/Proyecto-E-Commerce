@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var (
@@ -23,6 +24,7 @@ type OrderRepository interface {
 	FindByOrderID(ctx context.Context, orderID string) (*domain.Order, error)
 	FindByUserID(ctx context.Context, userID string) ([]domain.Order, error)
 	FindByShippingStatus(ctx context.Context, shippingStatus string) ([]domain.Order, error)
+	FindAllPaid(ctx context.Context, from, to *time.Time) ([]domain.Order, error)
 	UpdateStatus(ctx context.Context, orderID string, status domain.OrderStatus) error
 	Update(ctx context.Context, order *domain.Order) error
 	HasProcessedPaymentID(ctx context.Context, orderID string, paymentID string) (bool, error)
@@ -96,6 +98,36 @@ func (r *MongoOrderRepository) FindByUserID(ctx context.Context, userID string) 
 		return nil, err
 	}
 
+	return orders, nil
+}
+
+func (r *MongoOrderRepository) FindAllPaid(ctx context.Context, from, to *time.Time) ([]domain.Order, error) {
+	filter := bson.M{"status": "Paid"}
+	if from != nil || to != nil {
+		dateFilter := bson.M{}
+		if from != nil {
+			dateFilter["$gte"] = *from
+		}
+		if to != nil {
+			dateFilter["$lte"] = *to
+		}
+		filter["created_at"] = dateFilter
+	}
+
+	opts := &options.FindOptions{}
+	sort := bson.D{{Key: "created_at", Value: -1}}
+	opts.SetSort(sort)
+
+	cursor, err := r.collection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var orders []domain.Order
+	if err = cursor.All(ctx, &orders); err != nil {
+		return nil, err
+	}
 	return orders, nil
 }
 

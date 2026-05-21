@@ -86,8 +86,10 @@ export class OrderApiRepository extends IOrderRepository {
             if (filters.paidStatus) params.append('paid_status', filters.paidStatus);
             if (filters.shipStatus) params.append('ship_status', filters.shipStatus);
 
-            const response = await paymentsClient.get(`/api/v1/admin/orders?${params.toString()}`);
-            return response.data.map(o => new Order(o));
+            const query = params.toString();
+            const response = await paymentsClient.get(`/api/v1/admin/orders${query ? `?${query}` : ''}`);
+            const orders = response.data.orders || [];
+            return orders.map(o => new Order(o));
         } catch (error) {
             throw new Error(`Failed to fetch all orders: ${error.message}`);
         }
@@ -108,6 +110,30 @@ export class OrderApiRepository extends IOrderRepository {
             return new Order(response.data);
         } catch (error) {
             throw new Error(`Failed to fetch order details: ${error.message}`);
+        }
+    }
+
+    async getAllPaidOrders(filters = {}) {
+        try {
+            const params = new URLSearchParams();
+            if (filters.from) params.append('from', filters.from);
+            if (filters.to) params.append('to', filters.to);
+
+            const query = params.toString();
+            const response = await paymentsClient.get(`/api/v1/admin/orders${query ? `?${query}` : ''}`);
+            const orders = response.data.orders || [];
+            return orders.map(o => new Order(o));
+        } catch (error) {
+            throw new Error(`Failed to fetch paid orders: ${error.message}`);
+        }
+    }
+
+    async updateShippingTrackId(orderId, trackId) {
+        try {
+            await paymentsClient.put(`/api/v1/admin/orders/${orderId}/shipped`, { track_id: trackId });
+            return true;
+        } catch (error) {
+            throw new Error(`Failed to update track ID: ${error.message}`);
         }
     }
 }

@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"payments-service/internal/domain"
 	"payments-service/internal/usecase"
@@ -198,6 +199,41 @@ func (h *Handler) FindByID(c *gin.Context) {
 	c.JSON(http.StatusOK, order)
 }
 
+func (h *Handler) GetAllPaidOrders(c *gin.Context) {
+	var from, to *time.Time
+
+	if fromStr := c.Query("from"); fromStr != "" {
+		t, err := time.Parse(time.RFC3339, fromStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid 'from' date format, use RFC3339"})
+			return
+		}
+		from = &t
+	}
+
+	if toStr := c.Query("to"); toStr != "" {
+		t, err := time.Parse(time.RFC3339, toStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid 'to' date format, use RFC3339"})
+			return
+		}
+		// Set to end of the day
+		endOfDay := time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 999999999, t.Location())
+		to = &endOfDay
+	}
+
+	orders, err := h.managerUseCase.FindAllPaid(c.Request.Context(), from, to)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"orders": orders,
+		"count":  len(orders),
+	})
+}
+
 func (h *Handler) FindByShippingStatus(c *gin.Context) {
 	orders, err := h.managerUseCase.FindByShippingStatus(c.Request.Context(), c.Param("status"))
 	if err != nil {
@@ -206,6 +242,26 @@ func (h *Handler) FindByShippingStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, orders)
+}
+
+func (h *Handler) UpdateShippingStatus(c *gin.Context) {
+	orderID := c.Param("id")
+
+	var body struct {
+		TrackID string `json:"track_id"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || body.TrackID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "track_id is required in request body"})
+		return
+	}
+
+	err := h.managerUseCase.UpdateShippingStatus(c.Request.Context(), orderID, body.TrackID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Shipping status updated successfully"})
 }
 
 func (h *Handler) WhatsAppNotification(c *gin.Context) {

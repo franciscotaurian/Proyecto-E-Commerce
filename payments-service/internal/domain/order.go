@@ -64,7 +64,7 @@ type Order struct {
 	ShippingMethod      string             `bson:"shipping_method" json:"shipping_method"`
 	ShippingStatus      string             `bson:"shipping_status" json:"shipping_status"`
 	ShippingAddress     Address            `bson:"shipping_address" json:"shipping_address"`
-	AndreaniTrackID     string             `bson:"andreani_id,omitempty" json:"andreani_id,omitempty"`
+	ShippedTrackID      string             `bson:"shipped_track_id,omitempty" json:"shipped_track_id,omitempty"`
 	PaymentURL          string             `bson:"payment_url,omitempty" json:"payment_url,omitempty"`
 	ProcessedPaymentIDs []string           `bson:"processed_payment_ids,omitempty" json:"processed_payment_ids,omitempty"`
 	CreatedAt           time.Time          `bson:"created_at" json:"created_at"`

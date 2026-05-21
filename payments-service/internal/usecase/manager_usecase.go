@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"proyecto-ecommerce/shared/logger"
 	"time"
 
@@ -19,6 +20,10 @@ func NewManagerUseCase(orderRepo repository.OrderRepository, logger *logger.Inte
 		orderRepo: orderRepo,
 		logger:    logger,
 	}
+}
+
+func (uc *ManagerUseCase) FindAllPaid(ctx context.Context, from, to *time.Time) ([]domain.Order, error) {
+	return uc.orderRepo.FindAllPaid(ctx, from, to)
 }
 
 func (uc *ManagerUseCase) FindByShippingStatus(ctx context.Context, shippingStatus string) ([]domain.Order, error) {
@@ -40,4 +45,23 @@ func (uc *ManagerUseCase) UpdateStatus(ctx context.Context, orderID string, stat
 	order.UpdatedAt = time.Now()
 
 	return uc.orderRepo.Update(ctx, order)
+}
+
+func (uc *ManagerUseCase) UpdateShippingStatus(ctx context.Context, orderID string, shippedTrackID string) error {
+
+	if shippedTrackID == "" {
+		return errors.New("shipped track ID is required")
+	}
+
+	order, err := uc.orderRepo.FindByID(ctx, orderID)
+	if err != nil {
+		return err
+	}
+
+	order.ShippingStatus = domain.ShippingStatusShipped
+	order.ShippedTrackID = shippedTrackID
+	order.UpdatedAt = time.Now()
+
+	return uc.orderRepo.Update(ctx, order)
+
 }
