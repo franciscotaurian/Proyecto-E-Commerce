@@ -27,7 +27,6 @@ func main() {
 	productsServiceURL := getEnv("PRODUCTS_SERVICE_URL", "http://products-service:8080")
 	usersServiceURL := getEnv("USERS_SERVICE_URL", "http://users-service:8080")
 	mercadoPagoToken := getEnv("MERCADOPAGO_ACCESS_TOKEN", "TEST-ACCESS-TOKEN")
-	AndreaniToken := getEnv("ANDREANI_TOKEN", "TEST-TOKEN")
 	webhookURL := getEnv("WEBHOOK_URL", "http://localhost:8083/api/v1/webhook/mercadopago")
 	frontendURL := getEnv("FRONTEND_URL", "http://localhost:5173")
 
@@ -59,7 +58,6 @@ func main() {
 	productClient := client.NewProductServiceClient(productsServiceURL)
 	userClient := client.NewUserClient(usersServiceURL)
 	mercadoPagoClient := client.NewMercadoPagoClient(mercadoPagoToken, mercadoPagoSuccessURL, mercadoPagoFailureURL, mercadoPagoPendingURL)
-	andreaniClient := client.NewAndreaniClient(AndreaniToken)
 
 	// Initialize repository
 	orderRepo := repository.NewMongoOrderRepository(mongoClient.Database)
@@ -77,19 +75,11 @@ func main() {
 
 	// Initialize use cases
 
-	envioUseCase := usecase.NewEnvioUseCase(
-		andreaniClient,
-		AndreaniToken,
-		orderRepo,
-		internalLogger,
-	)
-
 	checkoutUseCase := usecase.NewCheckoutUseCase(
 		orderRepo,
 		productClient,
 		mercadoPagoClient,
 		reservationWorker,
-		envioUseCase,
 		internalLogger,
 		webhookURL,
 	)
@@ -101,7 +91,6 @@ func main() {
 		mercadoPagoClient,
 		reservationWorker,
 		notificationProducer,
-		envioUseCase,
 		internalLogger,
 	)
 
@@ -111,7 +100,7 @@ func main() {
 	)
 
 	// Initialize HTTP handler
-	handler := http.NewHandler(checkoutUseCase, paymentUseCase, managerUsecase, envioUseCase)
+	handler := http.NewHandler(checkoutUseCase, paymentUseCase, managerUsecase)
 
 	// Setup Gin router
 	router := gin.Default()

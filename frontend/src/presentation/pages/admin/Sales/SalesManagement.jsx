@@ -35,13 +35,22 @@ const fmtDate = (d) =>
 
 // ── Order Detail Modal ─────────────────────────────────────────────────────────
 const OrderDetailModal = ({ order, onClose, onTrackIdSaved }) => {
-    const [trackId, setTrackId] = useState(order.shippedTrackId || order.shipped_track_id || '');
+    const [trackId, setTrackId] = useState(
+        order.shippedTrackId || order.shipped_track_id
+        || order.shipping_info?.shipped_track_id || ''
+    );
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState('');
+    const [isModifyingTrackId, setIsModifyingTrackId] = useState(false);
+
+    const shippingMethod = order.shippingMethod || order.shipping_method;
+    const isWhatsApp = shippingMethod === 'Whatsapp';
+    const currentStatus = order.shippingStatus || order.shipping_status;
 
     // Prefer raw data if Order entity doesn't expose shipped_track_id
-    const rawTrackId = order.shippedTrackId || order.shipped_track_id || '';
+    const rawTrackId = order.shippedTrackId || order.shipped_track_id
+        || order.shipping_info?.shipped_track_id || '';
 
     useEffect(() => { setTrackId(rawTrackId); }, [rawTrackId]);
 
@@ -53,6 +62,7 @@ const OrderDetailModal = ({ order, onClose, onTrackIdSaved }) => {
             // Use MongoDB _id (order.id) to match the route /:id
             await orderApi.updateShippingTrackId(order.id, trackId.trim());
             setSaved(true);
+            setIsModifyingTrackId(false);
             onTrackIdSaved();
             setTimeout(() => setSaved(false), 3000);
         } catch (e) {
@@ -62,7 +72,24 @@ const OrderDetailModal = ({ order, onClose, onTrackIdSaved }) => {
         }
     };
 
-    const addr = order.shippingAddress;
+    const handleMarkAsDelivered = async () => {
+        setError('');
+        try {
+            setSaving(true);
+            await orderApi.updateShippingStatus(order.id, 'Delivered');
+            setSaved(true);
+            onTrackIdSaved();
+            setTimeout(() => setSaved(false), 3000);
+        } catch (e) {
+            setError(e.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const addr = order.shippingAddress
+        || order.shipping_info?.shipping_address
+        || {};
     const addressStr = addr
         ? [addr.street, addr.number, addr.floor && `Piso ${addr.floor}`, addr.apartment && `Dto ${addr.apartment}`, addr.city, addr.province, addr.country]
               .filter(Boolean).join(', ')
@@ -93,7 +120,7 @@ const OrderDetailModal = ({ order, onClose, onTrackIdSaved }) => {
                         <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg">
                             <FiTruck size={14} className="text-indigo-500" />
                             <span className="font-medium">Envío:</span>
-                            {shippingBadge(order.shippingStatus || order.shipping_status)}
+                            {shippingBadge(currentStatus)}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg">
                             <FiCalendar size={14} className="text-indigo-500" />
@@ -105,7 +132,7 @@ const OrderDetailModal = ({ order, onClose, onTrackIdSaved }) => {
                     <div className="bg-indigo-50 rounded-xl p-4 space-y-2">
                         <div className="flex items-center gap-2 text-sm font-semibold text-indigo-700">
                             <FiMapPin size={14} />
-                            {shippingMethodLabel(order.shippingMethod || order.shipping_method)}
+                            {shippingMethodLabel(shippingMethod)}
                         </div>
                         <p className="text-sm text-gray-600">{addressStr}</p>
                     </div>
@@ -147,44 +174,86 @@ const OrderDetailModal = ({ order, onClose, onTrackIdSaved }) => {
                         </div>
                     </div>
 
-                    {/* Track ID */}
+                    {/* Shipping Management */}
                     <div className="border border-dashed border-indigo-300 rounded-xl p-4 bg-indigo-50/40">
                         <h3 className="text-sm font-semibold text-indigo-700 mb-3 flex items-center gap-2">
-                            <FiTruck size={14} /> Track ID de envío
+                            <FiTruck size={14} /> Gestión de Envío
                         </h3>
-                        {rawTrackId && (
-                            <div className="mb-3 flex items-center gap-2 text-sm text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-2">
-                                <span className="text-gray-400 text-xs">Actual:</span>
-                                <span className="font-mono font-semibold text-indigo-700">{rawTrackId}</span>
+                        
+                        {!isWhatsApp && (
+                            <div className="mb-4">
+                                {rawTrackId && !isModifyingTrackId ? (
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 text-sm text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-2 flex-1">
+                                            <span className="text-gray-400 text-xs">Track ID:</span>
+                                            <span className="font-mono font-semibold text-indigo-700">{rawTrackId}</span>
+                                        </div>
+                                        <button
+                                            onClick={() => setIsModifyingTrackId(true)}
+                                            className="px-3 py-2 text-sm font-semibold text-indigo-600 border border-indigo-200 bg-white rounded-lg hover:bg-indigo-50 transition-colors"
+                                        >
+                                            Modificar
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={trackId}
+                                            onChange={e => setTrackId(e.target.value)}
+                                            placeholder="Ingresá el Track ID..."
+                                            className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-mono"
+                                        />
+                                        <button
+                                            onClick={handleSaveTrack}
+                                            disabled={saving}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-colors flex-shrink-0 ${
+                                                saved ? 'bg-green-500' : saving ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
+                                            }`}
+                                        >
+                                            {saved ? <FiCheckCircle size={15} /> : <FiSave size={15} />}
+                                            {saved ? 'Guardado' : saving ? 'Guardando...' : 'Guardar'}
+                                        </button>
+                                        {isModifyingTrackId && (
+                                            <button
+                                                onClick={() => {
+                                                    setIsModifyingTrackId(false);
+                                                    setTrackId(rawTrackId);
+                                                    setError('');
+                                                }}
+                                                className="px-3 py-2 text-sm font-semibold text-gray-600 border border-gray-200 bg-white rounded-lg hover:bg-gray-50 transition-colors"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={trackId}
-                                onChange={e => setTrackId(e.target.value)}
-                                placeholder="Ingresá el Track ID..."
-                                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-mono"
-                            />
-                            <button
-                                onClick={handleSaveTrack}
-                                disabled={saving}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-colors flex-shrink-0 ${
-                                    saved ? 'bg-green-500' : saving ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
-                                }`}
-                            >
-                                {saved ? <FiCheckCircle size={15} /> : <FiSave size={15} />}
-                                {saved ? 'Guardado' : saving ? 'Guardando...' : 'Guardar'}
-                            </button>
-                        </div>
+
+                        {currentStatus !== 'Delivered' && (
+                            <div className="flex gap-2 items-center">
+                                <button
+                                    onClick={handleMarkAsDelivered}
+                                    disabled={saving}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-colors ${
+                                        saving ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                                    }`}
+                                >
+                                    <FiCheckCircle size={15} />
+                                    Marcar como Entregado
+                                </button>
+                                <span className="text-xs text-gray-400">
+                                    Actualiza el estado de la orden a Entregado.
+                                </span>
+                            </div>
+                        )}
+
                         {error && (
-                            <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
+                            <p className="mt-3 text-xs text-red-600 flex items-center gap-1">
                                 <FiAlertCircle size={12} /> {error}
                             </p>
                         )}
-                        <p className="mt-2 text-xs text-gray-400">
-                            Al guardar, el estado de envío se actualizará a <strong>Enviado</strong>.
-                        </p>
                     </div>
                 </div>
             </div>

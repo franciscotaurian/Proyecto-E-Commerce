@@ -11,22 +11,10 @@ import (
 type OrderStatus string
 
 const (
-	StatusPending   OrderStatus = "Pending"
-	StatusPaid      OrderStatus = "Paid"
-	StatusShipped   OrderStatus = "Shipped"
-	StatusCancelled OrderStatus = "Cancelled"
-)
-
-const (
-	ShippingStatusPending   string = "Pending"
-	ShippingStatusShipped   string = "Shipped"
-	ShippingStatusDelivered string = "Delivered"
-	ShippingStatusCancelled string = "Cancelled"
-)
-
-const (
-	ShippingMethodSend     string = "Send"
-	ShippingMethodWhatsapp string = "Whatsapp"
+	OrderStatusPending   OrderStatus = "Pending"
+	OrderStatusPaid      OrderStatus = "Paid"
+	OrderStatusShipped   OrderStatus = "Shipped"
+	OrderStatusCancelled OrderStatus = "Cancelled"
 )
 
 // OrderItem represents a product in an order
@@ -61,10 +49,7 @@ type Order struct {
 	Weight              float64            `bson:"package" json:"package"`
 	TotalAmount         float64            `bson:"total_amount" json:"total_amount"`
 	Status              OrderStatus        `bson:"status" json:"status"`
-	ShippingMethod      string             `bson:"shipping_method" json:"shipping_method"`
-	ShippingStatus      string             `bson:"shipping_status" json:"shipping_status"`
-	ShippingAddress     Address            `bson:"shipping_address" json:"shipping_address"`
-	ShippedTrackID      string             `bson:"shipped_track_id,omitempty" json:"shipped_track_id,omitempty"`
+	ShippingInfo        Shipping           `bson:"shipping_info" json:"shipping_info"`
 	PaymentURL          string             `bson:"payment_url,omitempty" json:"payment_url,omitempty"`
 	ProcessedPaymentIDs []string           `bson:"processed_payment_ids,omitempty" json:"processed_payment_ids,omitempty"`
 	CreatedAt           time.Time          `bson:"created_at" json:"created_at"`
@@ -78,33 +63,6 @@ func (o *Order) Validate() error {
 	}
 	if len(o.Items) == 0 {
 		return errors.New("at least one item is required")
-	}
-	if o.ShippingMethod == "" {
-		return errors.New("Shipping method required")
-	}
-	if o.ShippingAddress.Street == "" {
-		return errors.New("shipping address is required")
-	}
-	if o.ShippingAddress.Number == "" {
-		return errors.New("shipping address number is required")
-	}
-	if o.ShippingAddress.Floor == "" {
-		return errors.New("shipping address floor is required")
-	}
-	if o.ShippingAddress.Apartment == "" {
-		return errors.New("shipping address apartment is required")
-	}
-	if o.ShippingAddress.City == "" {
-		return errors.New("shipping address city is required")
-	}
-	if o.ShippingAddress.Province == "" {
-		return errors.New("shipping address province is required")
-	}
-	if o.ShippingAddress.Country == "" {
-		return errors.New("shipping address country is required")
-	}
-	if o.ShippingAddress.ZipCode == "" {
-		return errors.New("shipping address zip code is required")
 	}
 	return nil
 }

@@ -27,10 +27,23 @@ export class Order {
         this.items = (data.items || []).map(item => new OrderItem(item));
         this.totalAmount = data.total_amount || data.totalAmount || 0;
         this.status = data.status || 'Pending';
-        this.shippingMethod = data.shipping_method || data.shippingMethod || '';
-        this.shippingStatus = data.shipping_status || data.shippingStatus || 'Pending';
-        this.shippingAddress = new Address(data.shipping_address || data.shippingAddress || {});
-        this.envioPackId = data.enviopack_id || data.envioPackId || '';
+
+        // The backend wraps shipping data inside "shipping_info"
+        const shippingInfo = data.shipping_info || data.shippingInfo || {};
+
+        this.shippingMethod = shippingInfo.shipping_method || shippingInfo.shippingMethod
+            || data.shipping_method || data.shippingMethod || '';
+        this.shippingStatus = shippingInfo.shipping_status || shippingInfo.shippingStatus
+            || data.shipping_status || data.shippingStatus || 'Pending';
+        this.shippingAddress = new Address(
+            shippingInfo.shipping_address || shippingInfo.shippingAddress
+            || data.shipping_address || data.shippingAddress || {}
+        );
+        this.shippingCost = shippingInfo.shipping_cost ?? shippingInfo.shippingCost
+            ?? data.shipping_cost ?? data.shippingCost ?? 0;
+        this.shippedTrackId = shippingInfo.shipped_track_id || shippingInfo.shippedTrackId
+            || data.shipped_track_id || data.shippedTrackId || '';
+
         this.paymentUrl = data.payment_url || data.paymentUrl || '';
         this.createdAt = data.created_at || data.createdAt;
         this.updatedAt = data.updated_at || data.updatedAt;

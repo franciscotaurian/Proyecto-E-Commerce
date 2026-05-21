@@ -222,7 +222,7 @@ export const OrderDetail = () => {
                     <div className="bg-white border border-gray-200 rounded-lg p-6">
                         <h2 className="text-xl font-semibold mb-4">Método de Envío</h2>
                         <p className="text-gray-700">
-                            {order.shippingMethod === 'Whatsapp' ? '📱 WhatsApp - Retiro en persona' : '📦 Envío Send'}
+                            {order.shippingMethod === 'Whatsapp' ? '📱 WhatsApp - Coordinación directa con el vendedor' : '📦 Envío a domicilio vía Send'}
                         </p>
                     </div>
                 </div>
@@ -243,7 +243,19 @@ export const OrderDetail = () => {
                             ))}
                         </div>
 
-                        <div className="border-t border-gray-200 pt-4 mb-4">
+                         <div className="border-t border-gray-200 pt-4 mb-4 space-y-2">
+                            {order.shippingCost > 0 && (
+                                <div className="flex justify-between text-sm text-gray-600">
+                                    <span>Envío</span>
+                                    <span>{formatCurrency(order.shippingCost)}</span>
+                                </div>
+                            )}
+                            {order.shippingCost === 0 && (
+                                <div className="flex justify-between text-sm text-green-600">
+                                    <span>Envío</span>
+                                    <span className="font-medium">¡Gratis!</span>
+                                </div>
+                            )}
                             <div className="flex justify-between items-center">
                                 <span className="text-lg font-semibold">Total</span>
                                 <span className="text-2xl font-bold">{formatCurrency(order.totalAmount)}</span>

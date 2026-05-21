@@ -111,6 +111,10 @@ services:
       - ENVIOPACK_API_KEY=TEST-API-KEY
       - WEBHOOK_URL=https://tularemic-unintermissive-shawnda.ngrok-free.dev/api/v1/webhook/mercadopago
       - PORT=8080
+      - FREE_SHIPPING_LIMIT=${FREE_SHIPPING_LIMIT:-70000}
+      - STANDARD_VALUE_OUT_OF_CORDOBA=${STANDARD_VALUE_OUT_OF_CORDOBA:-10000}
+      - STANDARD_VALUE_IN_CORDOBA=${STANDARD_VALUE_IN_CORDOBA:-5000}
+      - ADMIN_PHONE_NUMBER=${ADMIN_PHONE_NUMBER:-}
     depends_on:
       mongodb:
         condition: service_healthy

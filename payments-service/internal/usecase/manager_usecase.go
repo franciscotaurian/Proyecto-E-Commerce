@@ -47,7 +47,7 @@ func (uc *ManagerUseCase) UpdateStatus(ctx context.Context, orderID string, stat
 	return uc.orderRepo.Update(ctx, order)
 }
 
-func (uc *ManagerUseCase) UpdateShippingStatus(ctx context.Context, orderID string, shippedTrackID string) error {
+func (uc *ManagerUseCase) UpdateShippingStatusWithTrackID(ctx context.Context, orderID string, shippedTrackID string) error {
 
 	if shippedTrackID == "" {
 		return errors.New("shipped track ID is required")
@@ -58,10 +58,42 @@ func (uc *ManagerUseCase) UpdateShippingStatus(ctx context.Context, orderID stri
 		return err
 	}
 
-	order.ShippingStatus = domain.ShippingStatusShipped
-	order.ShippedTrackID = shippedTrackID
+	order.ShippingInfo.ShippingStatus = domain.ShippingShipped
+	order.ShippingInfo.ShippedTrackID = shippedTrackID
 	order.UpdatedAt = time.Now()
 
 	return uc.orderRepo.Update(ctx, order)
+}
 
+func (uc *ManagerUseCase) UpdateShippingStatus(ctx context.Context, orderID string, shippingStatus string) error {
+
+	if shippingStatus == "" {
+		return errors.New("shipping status is required")
+	}
+
+	// Validate that the status is a known value
+	validStatuses := map[string]bool{
+		string(domain.ShippingPending):   true,
+		string(domain.ShippingShipped):   true,
+		string(domain.ShippingDelivered): true,
+		string(domain.ShippingCancelled): true,
+	}
+	if !validStatuses[shippingStatus] {
+		return errors.New("invalid shipping status: " + shippingStatus)
+	}
+
+	order, err := uc.orderRepo.FindByID(ctx, orderID)
+	if err != nil {
+		return err
+	}
+
+	// Prevent setting the same status
+	if string(order.ShippingInfo.ShippingStatus) == shippingStatus {
+		return errors.New("shipping status is already " + shippingStatus)
+	}
+
+	order.ShippingInfo.ShippingStatus = domain.ShippingStatus(shippingStatus)
+	order.UpdatedAt = time.Now()
+
+	return uc.orderRepo.Update(ctx, order)
 }

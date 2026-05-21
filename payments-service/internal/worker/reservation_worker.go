@@ -75,7 +75,7 @@ func (w *ReservationWorker) handleTimeout(orderID string, items []domain.OrderIt
 	}
 
 	// Only release stock if order is still pending
-	if order.Status != domain.StatusPending {
+	if order.Status != domain.OrderStatusPending {
 		w.logger.Info(fmt.Sprintf("Order %s is no longer pending, skipping release", orderID))
 		return
 	}
@@ -97,7 +97,7 @@ func (w *ReservationWorker) handleTimeout(orderID string, items []domain.OrderIt
 	}
 
 	// Update order status to cancelled
-	err = w.orderRepo.UpdateStatus(ctx, orderID, domain.StatusCancelled)
+	err = w.orderRepo.UpdateStatus(ctx, orderID, domain.OrderStatusCancelled)
 	if err != nil {
 		w.logger.Error(fmt.Sprintf("Failed to cancel order %s: %v", orderID, err))
 	} else {

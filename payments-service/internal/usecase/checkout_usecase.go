@@ -20,7 +20,6 @@ type CheckoutUseCase struct {
 	productClient     *client.ProductServiceClient
 	mercadoPagoClient *client.MercadoPagoClient
 	reservationWorker *worker.ReservationWorker
-	envioUseCase      *EnvioUseCase
 	logger            *logger.InternalLogger
 	webhookURL        string
 }
@@ -31,7 +30,6 @@ func NewCheckoutUseCase(
 	productClient *client.ProductServiceClient,
 	mercadoPagoClient *client.MercadoPagoClient,
 	reservationWorker *worker.ReservationWorker,
-	envioUseCase *EnvioUseCase,
 	log *logger.InternalLogger,
 	webhookURL string,
 ) *CheckoutUseCase {
@@ -40,7 +38,6 @@ func NewCheckoutUseCase(
 		productClient:     productClient,
 		mercadoPagoClient: mercadoPagoClient,
 		reservationWorker: reservationWorker,
-		envioUseCase:      envioUseCase,
 		logger:            log,
 		webhookURL:        webhookURL,
 	}
@@ -57,8 +54,12 @@ func (uc *CheckoutUseCase) CreateOrder(ctx context.Context, order *domain.Order)
 
 	// Generate unique order ID
 	order.OrderID = uuid.New().String()
-	order.Status = domain.StatusPending
-	order.ShippingStatus = domain.ShippingStatusPending
+	order.Status = domain.OrderStatusPending
+	order.ShippingInfo.ShippingStatus = domain.ShippingPending
+
+	//validacion de monto para precio de envio
+	order.ShippingInfo.SelectShippingCost(order.TotalAmount)
+
 	order.CreatedAt = time.Now()
 	order.UpdatedAt = time.Now()
 
@@ -80,20 +81,6 @@ func (uc *CheckoutUseCase) CreateOrder(ctx context.Context, order *domain.Order)
 
 	order.Weight = totalWeight
 
-	/*
-		quotationRequest := domain.Quotation{
-			ZipCodeDestination: order.ShippingAddress.ZipCode,
-			Weight:             strconv.FormatFloat(totalWeight, 'f', 2, 64),
-			Dimensions:         strconv.Itoa(30),
-			DeclaredValue:      strconv.FormatFloat(order.TotalAmount, 'f', 2, 64),
-		}
-
-
-		cotizacionEnvio, err := uc.envioUseCase.GetQuotation(ctx, &quotationRequest)
-		if err != nil {
-			return fmt.Errorf("failed to get shipping quotation: %w", err)
-		}*/
-
 	// Step 2: Create order in database
 	err := uc.orderRepo.Create(ctx, order)
 	if err != nil {
@@ -106,7 +93,7 @@ func (uc *CheckoutUseCase) CreateOrder(ctx context.Context, order *domain.Order)
 	uc.reservationWorker.StartTimer(order.OrderID, order.Items)
 
 	// Step 4: Generate Mercado Pago preference
-	items := make([]client.PreferenceItem, len(order.Items))
+	items := make([]client.PreferenceItem, len(order.Items)+1)
 	for i, item := range order.Items {
 		items[i] = client.PreferenceItem{
 			Title:       item.ProductName,
@@ -116,19 +103,12 @@ func (uc *CheckoutUseCase) CreateOrder(ctx context.Context, order *domain.Order)
 		}
 	}
 
-	/*
-		shipCost, err := strconv.ParseFloat(cotizacionEnvio.ShipCost, 64)
-		if err != nil {
-			return fmt.Errorf("failed to parse shipping cost: %w", err)
-		}
-
-		items = append(items, client.PreferenceItem{
-			Title:       "Envio",
-			Quantity:    1,
-			UnitPrice:   shipCost,
-			Description: "Envio a domicilio",
-		})
-	*/
+	items[len(order.Items)] = client.PreferenceItem{
+		Title:       "Envio",
+		Quantity:    1,
+		UnitPrice:   order.ShippingInfo.ShippingCost,
+		Description: "Envio a domicilio",
+	}
 
 	paymentURL, err := uc.mercadoPagoClient.CreatePreference(order.OrderID, items, uc.webhookURL)
 	if err != nil {

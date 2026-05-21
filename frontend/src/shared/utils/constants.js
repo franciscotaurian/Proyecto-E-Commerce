@@ -6,6 +6,16 @@ export const SHIPPING_METHODS = {
     SEND: 'Send',
 };
 
+// Shipping Costs (from env vars, matching backend logic)
+export const SHIPPING_COSTS = {
+    IN_CORDOBA: Number(import.meta.env.VITE_STANDARD_VALUE_IN_CORDOBA) || 5000,
+    OUT_OF_CORDOBA: Number(import.meta.env.VITE_STANDARD_VALUE_OUT_OF_CORDOBA) || 10000,
+    FREE_SHIPPING_LIMIT: Number(import.meta.env.VITE_FREE_SHIPPING_LIMIT) || 70000,
+};
+
+// Córdoba capital ZIP code
+export const CORDOBA_ZIP_CODE = '5000';
+
 // Order Status
 export const ORDER_STATUS = {
     PENDING: 'Pending',
@@ -52,6 +62,8 @@ export const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/400x400?text=No+Im
 
 export default {
     SHIPPING_METHODS,
+    SHIPPING_COSTS,
+    CORDOBA_ZIP_CODE,
     ORDER_STATUS,
     SHIPPING_STATUS,
     PAGINATION,

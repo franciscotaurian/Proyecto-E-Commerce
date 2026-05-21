@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"os"
 
 	"payments-service/internal/client"
 	"payments-service/internal/domain"
@@ -21,7 +22,6 @@ type PaymentUseCase struct {
 	mercadoPagoClient    *client.MercadoPagoClient
 	reservationWorker    *worker.ReservationWorker
 	notificationProducer *messaging.NotificationProducer
-	envioUseCase         *EnvioUseCase
 	logger               *logger.InternalLogger
 }
 
@@ -33,7 +33,6 @@ func NewPaymentUseCase(
 	mercadoPagoClient *client.MercadoPagoClient,
 	reservationWorker *worker.ReservationWorker,
 	notificationProducer *messaging.NotificationProducer,
-	envioUseCase *EnvioUseCase,
 	log *logger.InternalLogger,
 ) *PaymentUseCase {
 	return &PaymentUseCase{
@@ -43,7 +42,6 @@ func NewPaymentUseCase(
 		mercadoPagoClient:    mercadoPagoClient,
 		reservationWorker:    reservationWorker,
 		notificationProducer: notificationProducer,
-		envioUseCase:         envioUseCase,
 		logger:               log,
 	}
 }
@@ -75,7 +73,7 @@ func (uc *PaymentUseCase) ConfirmPayment(ctx context.Context, orderID string) er
 	}
 
 	// Update order status
-	err = uc.orderRepo.UpdateStatus(ctx, orderID, domain.StatusPaid)
+	err = uc.orderRepo.UpdateStatus(ctx, orderID, domain.OrderStatusPaid)
 	if err != nil {
 		return err
 	}
@@ -110,21 +108,6 @@ func (uc *PaymentUseCase) ConfirmPayment(ctx context.Context, orderID string) er
 		return err
 	}
 
-	/* Send order to Andreani
-	orderResponse, err := uc.envioUseCase.CreateOrder(ctx, order, userInformation)
-	if err != nil {
-		uc.logger.Error(fmt.Sprintf("Failed to create order for order %s: %v", orderID, err))
-		return err
-	}
-
-	//actualizar orden con numero de seguimiento
-	err = uc.orderRepo.UpdateTrackingNumber(ctx, orderID, orderResponse.EtiquetasPorAgrupador)
-	if err != nil {
-		uc.logger.Error(fmt.Sprintf("Failed to update tracking number for order %s: %v", orderID, err))
-		return err
-	}
-	*/
-
 	return nil
 }
 
@@ -148,7 +131,7 @@ func (uc *PaymentUseCase) FailPayment(ctx context.Context, orderID string) error
 	}
 
 	// Update order status
-	err = uc.orderRepo.UpdateStatus(ctx, orderID, domain.StatusCancelled)
+	err = uc.orderRepo.UpdateStatus(ctx, orderID, domain.OrderStatusCancelled)
 	if err != nil {
 		return err
 	}
@@ -167,12 +150,12 @@ func (uc *PaymentUseCase) CancelOrder(ctx context.Context, orderID string) (stri
 	}
 
 	// Only allow cancellation of pending orders
-	if order.Status != domain.StatusPending && order.Status != domain.StatusPaid {
+	if order.Status != domain.OrderStatusPending && order.Status != domain.OrderStatusPaid {
 		return "", fmt.Errorf("cannot cancel order with status %s", order.Status)
 	}
 
 	// Cancel timer if pending
-	if order.Status == domain.StatusPending {
+	if order.Status == domain.OrderStatusPending {
 		uc.reservationWorker.CancelTimer(orderID)
 
 		// Release stock
@@ -182,7 +165,7 @@ func (uc *PaymentUseCase) CancelOrder(ctx context.Context, orderID string) (stri
 	}
 
 	// Update status
-	err = uc.orderRepo.UpdateStatus(ctx, orderID, domain.StatusCancelled)
+	err = uc.orderRepo.UpdateStatus(ctx, orderID, domain.OrderStatusCancelled)
 	if err != nil {
 		return "", err
 	}
@@ -270,14 +253,14 @@ func (uc *PaymentUseCase) EmailNotification(order *domain.Order, userInfo *domai
 		Products:     products,
 		Total:        fmt.Sprintf("$%.2f", order.TotalAmount),
 		ShippingInfo: messaging.ShippingInfo{
-			Address:    order.ShippingAddress.Street,
-			Number:     order.ShippingAddress.Number,
-			Floor:      order.ShippingAddress.Floor,
-			Apartment:  order.ShippingAddress.Apartment,
-			City:       order.ShippingAddress.City,
-			Province:   order.ShippingAddress.Province,
-			PostalCode: order.ShippingAddress.ZipCode,
-			Country:    order.ShippingAddress.Country,
+			Address:    order.ShippingInfo.ShippingAddress.Street,
+			Number:     order.ShippingInfo.ShippingAddress.Number,
+			Floor:      order.ShippingInfo.ShippingAddress.Floor,
+			Apartment:  order.ShippingInfo.ShippingAddress.Apartment,
+			City:       order.ShippingInfo.ShippingAddress.City,
+			Province:   order.ShippingInfo.ShippingAddress.Province,
+			PostalCode: order.ShippingInfo.ShippingAddress.ZipCode,
+			Country:    order.ShippingInfo.ShippingAddress.Country,
 		},
 	}
 
@@ -309,7 +292,7 @@ func (uc *PaymentUseCase) WhatsAppNotification(ctx context.Context, orderID stri
 		return "", err
 	}
 
-	if order.Status != domain.StatusPaid {
+	if order.Status != domain.OrderStatusPaid {
 		return "", fmt.Errorf("order %s is not paid", orderID)
 	}
 
@@ -330,14 +313,14 @@ func (uc *PaymentUseCase) WhatsAppNotification(ctx context.Context, orderID stri
 
 	// Build address string with each field on a new line
 	address := fmt.Sprintf("Calle: %s %s\nPiso: %s\nDpto: %s\nCiudad: %s\nProvincia: %s\nCódigo Postal: %s\nPaís: %s",
-		order.ShippingAddress.Street,
-		order.ShippingAddress.Number,
-		order.ShippingAddress.Floor,
-		order.ShippingAddress.Apartment,
-		order.ShippingAddress.City,
-		order.ShippingAddress.Province,
-		order.ShippingAddress.ZipCode,
-		order.ShippingAddress.Country,
+		order.ShippingInfo.ShippingAddress.Street,
+		order.ShippingInfo.ShippingAddress.Number,
+		order.ShippingInfo.ShippingAddress.Floor,
+		order.ShippingInfo.ShippingAddress.Apartment,
+		order.ShippingInfo.ShippingAddress.City,
+		order.ShippingInfo.ShippingAddress.Province,
+		order.ShippingInfo.ShippingAddress.ZipCode,
+		order.ShippingInfo.ShippingAddress.Country,
 	)
 
 	// Build WhatsApp message with proper formatting
@@ -350,7 +333,7 @@ func (uc *PaymentUseCase) WhatsAppNotification(ctx context.Context, orderID stri
 		address,
 	)
 
-	phone := "+542302347970" // TODO: Get from user service
+	phone := os.Getenv("ADMIN_PHONE_NUMBER")
 	// URL encode the message to properly handle spaces and newlines
 	whatsappURL = fmt.Sprintf("https://wa.me/%s?text=%s", phone, url.QueryEscape(message))
 

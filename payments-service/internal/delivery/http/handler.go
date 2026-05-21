@@ -16,33 +16,15 @@ type Handler struct {
 	checkoutUseCase *usecase.CheckoutUseCase
 	paymentUseCase  *usecase.PaymentUseCase
 	managerUseCase  *usecase.ManagerUseCase
-	envioUseCase    *usecase.EnvioUseCase
 }
 
 // NewHandler creates a new HTTP handler
-func NewHandler(checkoutUseCase *usecase.CheckoutUseCase, paymentUseCase *usecase.PaymentUseCase, managerUseCase *usecase.ManagerUseCase, envioUseCase *usecase.EnvioUseCase) *Handler {
+func NewHandler(checkoutUseCase *usecase.CheckoutUseCase, paymentUseCase *usecase.PaymentUseCase, managerUseCase *usecase.ManagerUseCase) *Handler {
 	return &Handler{
 		checkoutUseCase: checkoutUseCase,
 		paymentUseCase:  paymentUseCase,
 		managerUseCase:  managerUseCase,
-		envioUseCase:    envioUseCase,
 	}
-}
-
-func (h *Handler) GetQuotation(c *gin.Context) {
-	var quotationRequest domain.Quotation
-	if err := c.ShouldBindJSON(&quotationRequest); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	quotationResponse, err := h.envioUseCase.GetQuotation(c.Request.Context(), &quotationRequest)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, quotationResponse)
 }
 
 // CreateOrder handles order creation (checkout)
@@ -244,7 +226,7 @@ func (h *Handler) FindByShippingStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, orders)
 }
 
-func (h *Handler) UpdateShippingStatus(c *gin.Context) {
+func (h *Handler) UpdateShippingStatusWithTrackID(c *gin.Context) {
 	orderID := c.Param("id")
 
 	var body struct {
@@ -255,7 +237,27 @@ func (h *Handler) UpdateShippingStatus(c *gin.Context) {
 		return
 	}
 
-	err := h.managerUseCase.UpdateShippingStatus(c.Request.Context(), orderID, body.TrackID)
+	err := h.managerUseCase.UpdateShippingStatusWithTrackID(c.Request.Context(), orderID, body.TrackID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Shipping status updated successfully"})
+}
+
+func (h *Handler) UpdateShippingStatus(c *gin.Context) {
+	orderID := c.Param("id")
+
+	var body struct {
+		ShippingStatus string `json:"shipping_status"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || body.ShippingStatus == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "shipping_status is required in request body"})
+		return
+	}
+
+	err := h.managerUseCase.UpdateShippingStatus(c.Request.Context(), orderID, body.ShippingStatus)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

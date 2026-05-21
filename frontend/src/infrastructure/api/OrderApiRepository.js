@@ -17,20 +17,22 @@ export class OrderApiRepository extends IOrderRepository {
                     quantity: item.quantity,
                     price: item.price,
                 })),
-                shipping_method: orderData.shippingMethod,
-                shipping_address: {
-                    street: orderData.shippingAddress.street,
-                    number: orderData.shippingAddress.number,
-                    floor: orderData.shippingAddress.floor,
-                    apartment: orderData.shippingAddress.apartment,
-                    city: orderData.shippingAddress.city,
-                    province: orderData.shippingAddress.province,
-                    country: orderData.shippingAddress.country,
-                    zip_code: orderData.shippingAddress.zipCode,
+                shipping_info: {
+                    shipping_method: orderData.shippingMethod,
+                    shipping_address: {
+                        street: orderData.shippingAddress.street,
+                        number: orderData.shippingAddress.number,
+                        floor: orderData.shippingAddress.floor,
+                        apartment: orderData.shippingAddress.apartment,
+                        city: orderData.shippingAddress.city,
+                        province: orderData.shippingAddress.province,
+                        country: orderData.shippingAddress.country,
+                        zip_code: orderData.shippingAddress.zipCode,
+                    },
                 },
             });
 
-            return new Order(response.data);
+            return new Order(response.data.order || response.data);
         } catch (error) {
             throw new Error(`Failed to create order: ${error.message}`);
         }
@@ -134,6 +136,15 @@ export class OrderApiRepository extends IOrderRepository {
             return true;
         } catch (error) {
             throw new Error(`Failed to update track ID: ${error.message}`);
+        }
+    }
+
+    async updateShippingStatus(orderId, shippingStatus) {
+        try {
+            await paymentsClient.put(`/api/v1/admin/orders/${orderId}/status`, { shipping_status: shippingStatus });
+            return true;
+        } catch (error) {
+            throw new Error(`Failed to update shipping status: ${error.message}`);
         }
     }
 }

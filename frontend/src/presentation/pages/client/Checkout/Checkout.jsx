@@ -6,7 +6,7 @@ import OrderApiRepository from '../../../../infrastructure/api/OrderApiRepositor
 import Button from '../../../components/common/Button.jsx';
 import Input from '../../../components/common/Input.jsx';
 import { formatCurrency } from '../../../../shared/utils/formatCurrency.js';
-import { SHIPPING_METHODS } from '../../../../shared/utils/constants.js';
+import { SHIPPING_METHODS, SHIPPING_COSTS, CORDOBA_ZIP_CODE } from '../../../../shared/utils/constants.js';
 
 export const Checkout = () => {
     const { user } = useAuth();
@@ -26,10 +26,22 @@ export const Checkout = () => {
         zipCode: user?.address?.zipCode || '',
     });
 
-    const isCordoba = shippingAddress.city.toLowerCase().includes('cordoba') ||
-        shippingAddress.city.toLowerCase().includes('córdoba');
-
+    // Determine shipping method based on ZIP code (CP 5000 = Córdoba capital)
+    const isCordoba = shippingAddress.zipCode.trim() === CORDOBA_ZIP_CODE;
     const shippingMethod = isCordoba ? SHIPPING_METHODS.WHATSAPP : SHIPPING_METHODS.SEND;
+
+    // Validate Argentina
+    const isArgentina = shippingAddress.country.toLowerCase().includes('argentina');
+
+    // Calculate shipping cost (mirrors backend SelectShippingCost logic)
+    const subtotal = getTotal();
+    const isFreeShipping = subtotal >= SHIPPING_COSTS.FREE_SHIPPING_LIMIT;
+    const shippingCost = isFreeShipping
+        ? 0
+        : isCordoba
+            ? SHIPPING_COSTS.IN_CORDOBA
+            : SHIPPING_COSTS.OUT_OF_CORDOBA;
+    const totalWithShipping = subtotal + shippingCost;
 
     const handleAddressChange = (e) => {
         const { name, value } = e.target;
@@ -40,8 +52,8 @@ export const Checkout = () => {
         e.preventDefault();
         setError('');
 
-        if (!isCordoba) {
-            setError('Por el momento solo realizamos envíos a Córdoba. Estamos trabajando para expandir nuestro alcance pronto.');
+        if (!isArgentina) {
+            setError('Por el momento solo realizamos envíos dentro de Argentina.');
             return;
         }
 
@@ -63,7 +75,6 @@ export const Checkout = () => {
 
             // Redirect to MercadoPago
             if (order.paymentUrl) {
-                alert('Orden creada exitosamente');
                 window.location.href = order.paymentUrl;
             } else {
                 navigate(`/payment-confirmation/${order.orderId}`);
@@ -94,9 +105,9 @@ export const Checkout = () => {
                 </div>
             )}
 
-            {!isCordoba && (
+            {!isArgentina && (
                 <div className="bg-yellow-50 text-yellow-800 p-4 rounded mb-6">
-                    <strong>Aviso:</strong> Actualmente solo enviamos a Córdoba capital.
+                    <strong>Aviso:</strong> Actualmente solo realizamos envíos dentro de Argentina.
                 </div>
             )}
 
@@ -171,14 +182,24 @@ export const Checkout = () => {
                         <div className="bg-gray-50 p-4 rounded mt-4">
                             <h3 className="font-bold mb-2">Método de Envío</h3>
                             <p className="text-sm">
-                                {isCordoba ? '📱 WhatsApp - Retiro en persona' : '📦 Envío Send'}
+                                {isCordoba
+                                    ? '📱 WhatsApp - Coordinación directa con el vendedor'
+                                    : '📦 Envío a domicilio vía Send'}
                             </p>
+                            {shippingAddress.zipCode && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                    CP: {shippingAddress.zipCode}
+                                    {isCordoba
+                                        ? ' (Córdoba Capital)'
+                                        : ' (Envío nacional)'}
+                                </p>
+                            )}
                         </div>
 
                         <Button
                             type="submit"
                             className="w-full mt-6"
-                            disabled={loading || !isCordoba}
+                            disabled={loading || !isArgentina}
                         >
                             {loading ? 'Procesando...' : 'Ir a Pagar'}
                         </Button>
@@ -199,10 +220,28 @@ export const Checkout = () => {
                                 </div>
                             ))}
                         </div>
-                        <div className="border-t border-gray-300 pt-4">
-                            <div className="flex justify-between font-bold text-lg">
+
+                        <div className="border-t border-gray-300 pt-4 space-y-2">
+                            <div className="flex justify-between text-sm">
+                                <span>Subtotal</span>
+                                <span>{formatCurrency(subtotal)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span>Envío {isCordoba ? '(Córdoba Capital)' : '(Nacional)'}</span>
+                                {isFreeShipping ? (
+                                    <span className="text-green-600 font-medium">¡Gratis!</span>
+                                ) : (
+                                    <span>{formatCurrency(shippingCost)}</span>
+                                )}
+                            </div>
+                            {isFreeShipping && (
+                                <p className="text-xs text-green-600">
+                                    🎉 ¡Envío gratis por compras superiores a {formatCurrency(SHIPPING_COSTS.FREE_SHIPPING_LIMIT)}!
+                                </p>
+                            )}
+                            <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-200">
                                 <span>Total</span>
-                                <span>{formatCurrency(getTotal())}</span>
+                                <span>{formatCurrency(totalWithShipping)}</span>
                             </div>
                         </div>
                     </div>
