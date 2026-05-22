@@ -56,6 +56,30 @@ type Order struct {
 	UpdatedAt           time.Time          `bson:"updated_at" json:"updated_at"`
 }
 
+type ReponseOrder struct {
+	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
+	OrderID      string             `bson:"order_id" json:"order_id"`
+	UserID       string             `bson:"user_id" json:"user_id"`
+	TotalAmount  float64            `bson:"total_amount" json:"total_amount"`
+	Status       OrderStatus        `bson:"status" json:"status"`
+	ShippingInfo Shipping           `bson:"shipping_info" json:"shipping_info"`
+	CreatedAt    time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt    time.Time          `bson:"updated_at" json:"updated_at"`
+}
+
+func (o *Order) ToResponseOrder() ReponseOrder {
+	return ReponseOrder{
+		ID:           o.ID,
+		OrderID:      o.OrderID,
+		UserID:       o.UserID,
+		TotalAmount:  o.TotalAmount,
+		Status:       o.Status,
+		ShippingInfo: o.ShippingInfo,
+		CreatedAt:    o.CreatedAt,
+		UpdatedAt:    o.UpdatedAt,
+	}
+}
+
 // Validate validates order data
 func (o *Order) Validate() error {
 	if o.UserID == "" {

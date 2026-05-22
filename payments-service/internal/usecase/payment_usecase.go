@@ -99,7 +99,7 @@ func (uc *PaymentUseCase) ConfirmPayment(ctx context.Context, orderID string) er
 	}
 
 	// Send notification based on shipping method
-	uc.EmailNotification(order, &userInformation)
+	go uc.EmailNotification(order, &userInformation)
 
 	// Clear user cart
 	err = uc.productClient.ClearUserCart(order.UserID)
@@ -265,7 +265,7 @@ func (uc *PaymentUseCase) EmailNotification(order *domain.Order, userInfo *domai
 	}
 
 	// Send email notification via RabbitMQ
-	notification := messaging.EmailNotification{
+	notification := messaging.EmailNotificationConfirmed{
 		To:           userInfo.Email,
 		Subject:      "Confirmación de Compra - Pedido " + order.OrderID,
 		Body:         fmt.Sprintf("Tu pedido %s ha sido confirmado y pagado exitosamente.", order.OrderID),

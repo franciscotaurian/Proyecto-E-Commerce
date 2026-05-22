@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmación de Envío</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .content {
+            padding: 30px 20px;
+        }
+
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .order-info {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .tracking-info {
+            background: #e8f4fd;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .order-info strong, .tracking-info strong {
+            color: #667eea;
+        }
+
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .products-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .products-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .products-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .products-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .shipping-info {
+            background: #fff9e6;
+            border: 1px solid #ffd700;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .shipping-info h3 {
+            margin-top: 0;
+            color: #f59e0b;
+            font-size: 16px;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+
+        @media only screen and (max-width: 600px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+
+            .products-table {
+                font-size: 14px;
+            }
+
+            .products-table th,
+            .products-table td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚚 Tu Pedido ha sido Enviado</h1>
+        </div>
+
+        <div class="content">
+            <p class="greeting">Hola <strong>{{.customer_name}}</strong>,</p>
+
+            <p>¡Buenas noticias! Hemos despachado tu pedido y ya se encuentra en camino hacia tu domicilio.</p>
+
+            <div class="tracking-info">
+                <h3 style="margin-top: 0; color: #3b82f6; font-size: 16px;">🔍 Número de Seguimiento</h3>
+                <p style="margin: 5px 0; font-size: 18px;"><strong>{{.track_id}}</strong></p>
+            </div>
+
+            <div class="order-info">
+                <strong>ID de Pedido:</strong> {{.order_id}}
+            </div>
+
+            <h2 style="color: #333; font-size: 20px; margin-top: 30px;">Productos Enviados</h2>
+
+            <table class="products-table">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th style="text-align: center;">Cantidad</th>
+                        <th style="text-align: right;">Precio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .products}}
+                    <tr>
+                        <td>{{.name}}</td>
+                        <td style="text-align: center;">{{.quantity}}</td>
+                        <td style="text-align: right;">{{.price}}</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+
+            <div class="shipping-info">
+                <h3>📦 Información de Envío</h3>
+                <p style="margin: 5px 0;"><strong>Dirección:</strong> {{.shipping_info.address}}</p>
+                <p style="margin: 5px 0;"><strong>Numero:</strong> {{.shipping_info.number}}</p>
+                <p style="margin: 5px 0;"><strong>Piso:</strong> {{.shipping_info.floor}}</p>
+                <p style="margin: 5px 0;"><strong>Departamento:</strong> {{.shipping_info.apartment}}</p>
+                <p style="margin: 5px 0;"><strong>Ciudad:</strong> {{.shipping_info.city}}</p>
+                <p style="margin: 5px 0;"><strong>Provincia:</strong> {{.shipping_info.province}}</p>
+                <p style="margin: 5px 0;"><strong>Código Postal:</strong> {{.shipping_info.postal_code}}</p>
+                <p style="margin: 5px 0;"><strong>País:</strong> {{.shipping_info.country}}</p>
+            </div>
+
+            <p style="margin-top: 30px; color: #666; font-size: 14px;">
+                Puedes hacer el seguimiento de tu envío utilizando el número proporcionado. 
+                Si tienes alguna pregunta, no dudes en contactarnos. ¡Esperamos que disfrutes tu compra!
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>© 2026 E-Commerce Platform. Todos los derechos reservados.</p>
+            <p style="font-size: 12px; margin-top: 10px;">
+                Este es un correo automático, por favor no respondas a este mensaje.
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

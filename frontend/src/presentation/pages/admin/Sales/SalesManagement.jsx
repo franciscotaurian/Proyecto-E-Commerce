@@ -262,7 +262,7 @@ const OrderDetailModal = ({ order, onClose, onTrackIdSaved }) => {
 };
 
 // ── Order Row Card ─────────────────────────────────────────────────────────────
-const OrderCard = ({ order, onClick }) => {
+const OrderCard = ({ order, onClick, isFetching }) => {
     const itemCount = (order.items || []).reduce((s, i) => s + (i.quantity || 1), 0);
     const shippingStatus = order.shippingStatus || order.shipping_status || 'Pending';
 
@@ -303,7 +303,11 @@ const OrderCard = ({ order, onClick }) => {
                     <p className="font-bold text-gray-800">{fmt(order.totalAmount || order.total_amount || 0)}</p>
                     <p className="text-xs text-gray-400">{shippingMethodLabel(order.shippingMethod || order.shipping_method)}</p>
                 </div>
-                <FiChevronDown className="text-gray-300 group-hover:text-indigo-400 rotate-[-90deg] transition-colors" size={18} />
+                {isFetching ? (
+                    <div className="w-5 h-5 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin ml-1" />
+                ) : (
+                    <FiChevronDown className="text-gray-300 group-hover:text-indigo-400 rotate-[-90deg] transition-colors" size={18} />
+                )}
             </div>
         </div>
     );
@@ -315,11 +319,13 @@ export const SalesManagement = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [selectedOrder, setSelectedOrder] = useState(null);
+    const [fetchingDetailsId, setFetchingDetailsId] = useState(null);
 
     // Filters
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [shippingFilter, setShippingFilter] = useState('Todos');
+    const [searchId, setSearchId] = useState('');
 
     const fetchOrders = useCallback(async () => {
         try {
@@ -341,6 +347,41 @@ export const SalesManagement = () => {
         }
     }, [dateFrom, dateTo]);
 
+    const handleSearch = async (e) => {
+        if (e) e.preventDefault();
+        if (!searchId.trim()) {
+            fetchOrders();
+            return;
+        }
+        
+        try {
+            setLoading(true);
+            setError('');
+            const order = await orderApi.getAdminOrderById(searchId.trim());
+            setOrders(order ? [order] : []);
+        } catch (err) {
+            setError('No se encontró ninguna orden con ese ID o hubo un error.');
+            setOrders([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleViewDetails = async (orderToView) => {
+        const id = orderToView.id || orderToView.orderId || orderToView.order_id;
+        if (!id) return;
+        
+        setFetchingDetailsId(id);
+        try {
+            const fullOrder = await orderApi.getAdminOrderById(id);
+            setSelectedOrder(fullOrder);
+        } catch (err) {
+            setError('Error al obtener los detalles de la orden: ' + err.message);
+        } finally {
+            setFetchingDetailsId(null);
+        }
+    };
+
     useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
     // Client-side shipping status filter
@@ -358,9 +399,13 @@ export const SalesManagement = () => {
         setDateFrom('');
         setDateTo('');
         setShippingFilter('Todos');
+        if (searchId) {
+            setSearchId('');
+            setTimeout(() => fetchOrders(), 0);
+        }
     };
 
-    const hasFilters = dateFrom || dateTo || shippingFilter !== 'Todos';
+    const hasFilters = dateFrom || dateTo || shippingFilter !== 'Todos' || searchId;
 
     // Stats
     const stats = {
@@ -416,9 +461,41 @@ export const SalesManagement = () => {
                 <FiPackage className="text-white/30" size={48} />
             </div>
 
-            {/* Filters */}
+            {/* Filters and Search */}
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-5">
-                <div className="flex flex-wrap gap-3 items-end">
+                {/* Search Bar */}
+                <form onSubmit={handleSearch} className="flex gap-2 mb-4">
+                    <div className="relative flex-1">
+                        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                        <input
+                            type="text"
+                            value={searchId}
+                            onChange={e => setSearchId(e.target.value)}
+                            placeholder="Buscar por ID de orden..."
+                            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-mono"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                    >
+                        Buscar
+                    </button>
+                    {searchId && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSearchId('');
+                                setTimeout(() => fetchOrders(), 0);
+                            }}
+                            className="px-3 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                            <FiX size={16} />
+                        </button>
+                    )}
+                </form>
+
+                <div className="flex flex-wrap gap-3 items-end pt-4 border-t border-gray-100">
                     {/* Date from */}
                     <div className="flex-1 min-w-[150px]">
                         <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Desde</label>
@@ -504,13 +581,17 @@ export const SalesManagement = () => {
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {filtered.map(order => (
-                        <OrderCard
-                            key={order.id || order.orderId || order.order_id}
-                            order={order}
-                            onClick={() => setSelectedOrder(order)}
-                        />
-                    ))}
+                    {filtered.map(order => {
+                        const orderId = order.id || order.orderId || order.order_id;
+                        return (
+                            <OrderCard
+                                key={orderId}
+                                order={order}
+                                onClick={() => handleViewDetails(order)}
+                                isFetching={fetchingDetailsId === orderId}
+                            />
+                        );
+                    })}
                 </div>
             )}
 

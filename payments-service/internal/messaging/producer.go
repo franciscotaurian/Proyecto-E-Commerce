@@ -51,7 +51,7 @@ func NewNotificationProducer(rabbitmqURL string) (*NotificationProducer, error) 
 }
 
 // PublishEmailNotification publishes an email notification to RabbitMQ
-func (p *NotificationProducer) PublishEmailNotification(notification EmailNotification) error {
+func (p *NotificationProducer) PublishEmailNotification(notification any) error {
 	body, err := json.Marshal(notification)
 	if err != nil {
 		return fmt.Errorf("failed to marshal notification: %w", err)

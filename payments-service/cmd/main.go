@@ -96,6 +96,8 @@ func main() {
 
 	managerUsecase := usecase.NewManagerUseCase(
 		orderRepo,
+		userClient,
+		notificationProducer,
 		internalLogger,
 	)
 

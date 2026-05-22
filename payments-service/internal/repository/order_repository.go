@@ -24,7 +24,7 @@ type OrderRepository interface {
 	FindByOrderID(ctx context.Context, orderID string) (*domain.Order, error)
 	FindByUserID(ctx context.Context, userID string) ([]domain.Order, error)
 	FindByShippingStatus(ctx context.Context, shippingStatus string) ([]domain.Order, error)
-	FindAllPaid(ctx context.Context, from, to *time.Time) ([]domain.Order, error)
+	FindAllPaid(ctx context.Context, from, to *time.Time) ([]domain.ReponseOrder, error)
 	UpdateStatus(ctx context.Context, orderID string, status domain.OrderStatus) error
 	Update(ctx context.Context, order *domain.Order) error
 	HasProcessedPaymentID(ctx context.Context, orderID string, paymentID string) (bool, error)
@@ -101,7 +101,7 @@ func (r *MongoOrderRepository) FindByUserID(ctx context.Context, userID string) 
 	return orders, nil
 }
 
-func (r *MongoOrderRepository) FindAllPaid(ctx context.Context, from, to *time.Time) ([]domain.Order, error) {
+func (r *MongoOrderRepository) FindAllPaid(ctx context.Context, from, to *time.Time) ([]domain.ReponseOrder, error) {
 	filter := bson.M{"status": "Paid"}
 	if from != nil || to != nil {
 		dateFilter := bson.M{}
@@ -128,7 +128,11 @@ func (r *MongoOrderRepository) FindAllPaid(ctx context.Context, from, to *time.T
 	if err = cursor.All(ctx, &orders); err != nil {
 		return nil, err
 	}
-	return orders, nil
+	responseOrder := []domain.ReponseOrder{}
+	for _, order := range orders {
+		responseOrder = append(responseOrder, order.ToResponseOrder())
+	}
+	return responseOrder, nil
 }
 
 func (r *MongoOrderRepository) FindByShippingStatus(ctx context.Context, shippingStatus string) ([]domain.Order, error) {
