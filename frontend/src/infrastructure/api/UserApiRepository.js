@@ -16,20 +16,19 @@ export class UserApiRepository extends IUserRepository {
     async updateProfile(userData) {
         try {
             const response = await usersClient.put('/api/v1/profile', {
+                user_id: userData.id,
                 first_name: userData.firstName,
                 last_name: userData.lastName,
                 dni: userData.dni,
                 phone: userData.phone,
-                address: {
-                    street: userData.address.street,
-                    number: userData.address.number,
-                    floor: userData.address.floor,
-                    apartment: userData.address.apartment,
-                    city: userData.address.city,
-                    province: userData.address.province,
-                    country: userData.address.country,
-                    zip_code: userData.address.zipCode,
-                },
+                street: userData.address?.street,
+                number: userData.address?.number,
+                floor: userData.address?.floor,
+                apartment: userData.address?.apartment,
+                city: userData.address?.city,
+                province: userData.address?.province,
+                country: userData.address?.country,
+                zip_code: userData.address?.zipCode,
             });
             return new User(response.data);
         } catch (error) {

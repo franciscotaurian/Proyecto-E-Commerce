@@ -36,6 +36,46 @@ type User struct {
 	CreatedAt          time.Time          `bson:"created_at" json:"created_at"`
 }
 
+type RegisterRequest struct {
+	FirstName string `json:"first_name" binding:"required"`
+	LastName  string `json:"last_name" binding:"required"`
+	DNI       string `json:"dni" binding:"required"`
+	Email     string `json:"email" binding:"required,email"`
+	Phone     string `json:"phone" binding:"required"`
+	Street    string `json:"street" binding:"required"`
+	Number    string `json:"number" binding:"required"`
+	Floor     string `json:"floor"`
+	Apartment string `json:"apartment"`
+	City      string `json:"city" binding:"required"`
+	Province  string `json:"province" binding:"required"`
+	Country   string `json:"country" binding:"required"`
+	ZipCode   string `json:"zip_code" binding:"required"`
+	Password  string `json:"password" binding:"required,min=6"`
+}
+
+type UpdateUserInformation struct {
+	FirstName string  `bson:"first_name" json:"first_name"`
+	LastName  string  `bson:"last_name" json:"last_name"`
+	DNI       string  `bson:"dni" json:"dni"`
+	Phone     string  `bson:"phone" json:"phone"`
+	Address   Address `bson:"address" json:"address"`
+}
+
+type UpdateUserRequest struct {
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	DNI       string `json:"dni"`
+	Phone     string `json:"phone"`
+	Street    string `json:"street"`
+	Number    string `json:"number"`
+	Floor     string `json:"floor"`
+	Apartment string `json:"apartment"`
+	City      string `json:"city"`
+	Province  string `json:"province"`
+	Country   string `json:"country"`
+	ZipCode   string `json:"zip_code"`
+}
+
 type UserInformation struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
@@ -69,6 +109,40 @@ func (u *User) Validate() error {
 	}
 	if len(u.Password) < 6 {
 		return errors.New("password must be at least 6 characters")
+	}
+	return nil
+}
+
+func (u *UpdateUserInformation) Validate() error {
+	if u.FirstName == "" {
+		return errors.New("first name is required")
+	}
+	if u.LastName == "" {
+		return errors.New("last name is required")
+	}
+	if u.DNI == "" {
+		return errors.New("DNI is required")
+	}
+	if u.Phone == "" {
+		return errors.New("phone is required")
+	}
+	if u.Address.Street == "" {
+		return errors.New("address is required")
+	}
+	if u.Address.Number == "" {
+		return errors.New("address is required")
+	}
+	if u.Address.City == "" {
+		return errors.New("address is required")
+	}
+	if u.Address.Province == "" {
+		return errors.New("address is required")
+	}
+	if u.Address.Country == "" {
+		return errors.New("address is required")
+	}
+	if u.Address.ZipCode == "" {
+		return errors.New("address is required")
 	}
 	return nil
 }

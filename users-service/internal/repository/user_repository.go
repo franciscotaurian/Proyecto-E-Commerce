@@ -25,7 +25,7 @@ type UserRepository interface {
 	FindByDNI(ctx context.Context, dni string) (*domain.User, error)
 	FindByID(ctx context.Context, id string) (*domain.User, error)
 	FindByVerificationToken(ctx context.Context, token string) (*domain.User, error)
-	Update(ctx context.Context, user *domain.User) error
+	Update(ctx context.Context, userID string, user *domain.UpdateUserInformation) (*domain.User, error)
 	UpdateVerificationStatus(ctx context.Context, userID string, isVerified bool) error
 	FindByResetPasswordToken(ctx context.Context, token string) (*domain.User, error)
 	UpdatePassword(ctx context.Context, userID string, password string) error
@@ -110,27 +110,39 @@ func (r *MongoUserRepository) FindByID(ctx context.Context, id string) (*domain.
 }
 
 // Update updates an existing user
-func (r *MongoUserRepository) Update(ctx context.Context, user *domain.User) error {
-	filter := bson.M{"_id": user.ID}
+func (r *MongoUserRepository) Update(ctx context.Context, userID string, updatedUser *domain.UpdateUserInformation) (*domain.User, error) {
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+
+	filter := bson.M{"_id": objectID}
 	update := bson.M{
 		"$set": bson.M{
-			"first_name": user.FirstName,
-			"last_name":  user.LastName,
-			"phone":      user.Phone,
-			"address":    user.Address,
+			"first_name": updatedUser.FirstName,
+			"last_name":  updatedUser.LastName,
+			"phone":      updatedUser.Phone,
+			"dni":        updatedUser.DNI,
+			"address":    updatedUser.Address,
 		},
 	}
 
 	result, err := r.collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if result.MatchedCount == 0 {
-		return ErrUserNotFound
+		return nil, ErrUserNotFound
 	}
 
-	return nil
+	var user domain.User
+	err = r.collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 // FindByVerificationToken finds a user by verification token

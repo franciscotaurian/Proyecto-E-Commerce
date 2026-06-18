@@ -27,22 +27,7 @@ func NewHandler(authUseCase *usecase.AuthUseCase, emailUseCase *usecase.EmailUse
 }
 
 // RegisterRequest represents registration request body
-type RegisterRequest struct {
-	FirstName string `json:"first_name" binding:"required"`
-	LastName  string `json:"last_name" binding:"required"`
-	DNI       string `json:"dni" binding:"required"`
-	Email     string `json:"email" binding:"required,email"`
-	Phone     string `json:"phone" binding:"required"`
-	Street    string `json:"street"`
-	Number    string `json:"number"`
-	Floor     string `json:"floor"`
-	Apartment string `json:"apartment"`
-	City      string `json:"city"`
-	Province  string `json:"province"`
-	Country   string `json:"country"`
-	ZipCode   string `json:"zip_code"`
-	Password  string `json:"password" binding:"required,min=6"`
-}
+type RegisterRequest = domain.RegisterRequest
 
 // LoginRequest represents login request body
 type LoginRequest struct {
@@ -161,67 +146,14 @@ func (h *Handler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	var req struct {
-		FirstName string `json:"first_name"`
-		LastName  string `json:"last_name"`
-		Phone     string `json:"phone"`
-		Street    string `json:"street"`
-		Number    string `json:"number"`
-		Floor     string `json:"floor"`
-		Apartment string `json:"apartment"`
-		City      string `json:"city"`
-		Province  string `json:"province"`
-		Country   string `json:"country"`
-		ZipCode   string `json:"zip_code"`
-	}
+	var req domain.UpdateUserRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Get existing user
-	user, err := h.authUseCase.GetProfile(c.Request.Context(), userID.(string))
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-		return
-	}
-
-	// Update fields
-	if req.FirstName != "" {
-		user.FirstName = req.FirstName
-	}
-	if req.LastName != "" {
-		user.LastName = req.LastName
-	}
-	if req.Phone != "" {
-		user.Phone = req.Phone
-	}
-	if req.Street != "" {
-		user.Address.Street = req.Street
-	}
-	if req.Number != "" {
-		user.Address.Number = req.Number
-	}
-	if req.Floor != "" {
-		user.Address.Floor = req.Floor
-	}
-	if req.Apartment != "" {
-		user.Address.Apartment = req.Apartment
-	}
-	if req.City != "" {
-		user.Address.City = req.City
-	}
-	if req.Province != "" {
-		user.Address.Province = req.Province
-	}
-	if req.Country != "" {
-		user.Address.Country = req.Country
-	}
-	if req.ZipCode != "" {
-		user.Address.ZipCode = req.ZipCode
-	}
-	err = h.authUseCase.UpdateProfile(c.Request.Context(), user)
+	updatedUser, err := h.authUseCase.UpdateProfile(c.Request.Context(), userID.(string), &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -229,7 +161,7 @@ func (h *Handler) UpdateProfile(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Profile updated successfully",
-		"user":    user.ToResponse(),
+		"user":    updatedUser,
 	})
 }
 

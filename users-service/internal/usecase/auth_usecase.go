@@ -115,8 +115,53 @@ func (uc *AuthUseCase) GetUserInformation(ctx context.Context, userID string) (*
 }
 
 // UpdateProfile updates user profile information
-func (uc *AuthUseCase) UpdateProfile(ctx context.Context, user *domain.User) error {
-	return uc.userRepo.Update(ctx, user)
+func (uc *AuthUseCase) UpdateProfile(ctx context.Context, userID string, req *domain.UpdateUserRequest) (*domain.UserResponse, error) {
+
+	user, err := uc.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, repository.ErrUserNotFound
+	}
+
+	updatedUser := &domain.UpdateUserInformation{
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
+		DNI:       req.DNI,
+		Phone:     req.Phone,
+		Address: domain.Address{
+			Street:    req.Street,
+			Number:    req.Number,
+			Floor:     req.Floor,
+			Apartment: req.Apartment,
+			City:      req.City,
+			Province:  req.Province,
+			Country:   req.Country,
+			ZipCode:   req.ZipCode,
+		},
+	}
+
+	if err := updatedUser.Validate(); err != nil {
+		return nil, err
+	}
+
+	// Check if DNI already exists (only if changing DNI)
+	if updatedUser.DNI != user.DNI {
+		existing, err := uc.userRepo.FindByDNI(ctx, updatedUser.DNI)
+		if err != nil && err != repository.ErrUserNotFound {
+			return nil, err
+		}
+		if existing != nil && existing.ID.Hex() != userID {
+			return nil, repository.ErrDuplicateDNI
+		}
+	}
+
+	user, err = uc.userRepo.Update(ctx, userID, updatedUser)
+	if err != nil {
+		return nil, err
+	}
+
+	response := user.ToResponse()
+	return &response, nil
+
 }
 
 // sendVerificationEmail sends a verification email via RabbitMQ

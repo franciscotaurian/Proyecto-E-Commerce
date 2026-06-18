@@ -14,6 +14,7 @@ import Checkout from '../pages/client/Checkout/Checkout.jsx';
 import PaymentConfirmation from '../pages/client/PaymentConfirmation/PaymentConfirmation.jsx';
 import PaymentSuccess from '../pages/client/PaymentSuccess/PaymentSuccess.jsx';
 import Profile from '../pages/client/Profile/Profile.jsx';
+import EditProfile from '../pages/client/Profile/EditProfile.jsx';
 import Login from '../pages/client/Auth/Login.jsx';
 import Register from '../pages/client/Auth/Register.jsx';
 import MyOrders from '../pages/client/Orders/MyOrders.jsx';
@@ -43,6 +44,7 @@ export const AppRouter = () => {
                     <Route path="payment-confirmation/:orderId" element={<ProtectedRoute><PaymentConfirmation /></ProtectedRoute>} />
                     <Route path="payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
                     <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                    <Route path="profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
                     <Route path="my-orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
                     <Route path="orders/:orderId" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
 
