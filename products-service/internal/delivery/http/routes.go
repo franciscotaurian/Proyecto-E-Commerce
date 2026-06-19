@@ -20,6 +20,7 @@ func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
 		public.GET("/products/:id", handler.GetProduct)
 		public.GET("/search", handler.Search)
 		public.GET("/categories", handler.ListCategories)
+		public.GET("/banners/active", handler.GetActiveBanner)
 	}
 
 	// Admin routes (should have auth middleware in production)
@@ -32,6 +33,12 @@ func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
 		admin.POST("/categories", handler.CreateCategory)
 		admin.PUT("/categories/:id", handler.UpdateCategory)
 		admin.DELETE("/categories/:id", handler.DeleteCategory)
+		
+		admin.GET("/banners", handler.ListBanners)
+		admin.POST("/banners", handler.CreateBanner)
+		admin.PUT("/banners/:id", handler.UpdateBanner)
+		admin.PUT("/banners/:id/activate", handler.SetActiveBanner)
+		admin.DELETE("/banners/:id", handler.DeleteBanner)
 	}
 
 	// Internal routes (for inter-service communication)

@@ -1,8 +1,100 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+    FiPackage, FiSearch, FiCalendar, FiFilter, FiX, FiTruck,
+    FiCheckCircle, FiClock, FiShoppingBag, FiChevronRight, FiAlertCircle,
+    FiCreditCard, FiDollarSign
+} from 'react-icons/fi';
 import OrderApiRepository from '../../../../infrastructure/api/OrderApiRepository.js';
 import Spinner from '../../../components/common/Spinner.jsx';
-import { formatCurrency, formatDate } from '../../../../shared/utils/formatCurrency.js';
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+const SHIPPING_STATUSES = ['Todos', 'Pending', 'Shipped', 'Delivered', 'Cancelled'];
+
+const shippingBadge = (status) => {
+    const map = {
+        Pending:   { bg: 'bg-amber-100',   text: 'text-amber-700',  label: 'Pendiente',   icon: <FiClock size={12} /> },
+        Shipped:   { bg: 'bg-blue-100',    text: 'text-blue-700',   label: 'Enviado',     icon: <FiTruck size={12} /> },
+        Delivered: { bg: 'bg-green-100',   text: 'text-green-700',  label: 'Entregado',   icon: <FiCheckCircle size={12} /> },
+        Cancelled: { bg: 'bg-red-100',     text: 'text-red-700',    label: 'Cancelado',   icon: <FiX size={12} /> },
+    };
+    const s = map[status] || map.Pending;
+    return (
+        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${s.bg} ${s.text}`}>
+            {s.icon} {s.label}
+        </span>
+    );
+};
+
+const paymentBadge = (status) => {
+    const map = {
+        Paid:    { bg: 'bg-green-100',  text: 'text-green-700',  label: 'Pagado',   icon: <FiCheckCircle size={12} /> },
+        Pending: { bg: 'bg-amber-100',  text: 'text-amber-700',  label: 'Pago pend.', icon: <FiClock size={12} /> },
+        Failed:  { bg: 'bg-red-100',    text: 'text-red-700',    label: 'Pago fallido', icon: <FiAlertCircle size={12} /> },
+    };
+    const s = map[status] || map.Pending;
+    return (
+        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${s.bg} ${s.text}`}>
+            {s.icon} {s.label}
+        </span>
+    );
+};
+
+const shippingMethodLabel = (method) =>
+    method === 'Send' ? '📦 Envío a domicilio' : '💬 WhatsApp / Retiro';
+
+const fmt = (n) =>
+    new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n);
+
+const fmtDate = (d) =>
+    d ? new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+
+// ── Order Row Card ─────────────────────────────────────────────────────────────
+const OrderCard = ({ order, onClick }) => {
+    const itemCount = (order.items || []).reduce((s, i) => s + (i.quantity || 1), 0);
+    const shippingStatus = order.shippingStatus || order.shipping_status || 'Pending';
+    const paymentStatus = order.status || 'Pending';
+
+    return (
+        <div
+            onClick={onClick}
+            className="bg-white border border-gray-100 rounded-xl px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4 cursor-pointer hover:border-black hover:shadow-md transition-all duration-200 group"
+        >
+            {/* Left icon */}
+            <div className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 transition-colors">
+                <FiShoppingBag className="text-gray-800" size={20} />
+            </div>
+
+            {/* Order info */}
+            <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-sm font-bold text-gray-700 truncate">
+                        #{(order.orderId || order.order_id || '').slice(-10)}
+                    </span>
+                    {paymentBadge(paymentStatus)}
+                    {paymentStatus === 'Paid' && shippingBadge(shippingStatus)}
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                        <FiCalendar size={11} /> {fmtDate(order.createdAt || order.created_at)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <FiPackage size={11} /> {itemCount} producto{itemCount !== 1 ? 's' : ''}
+                    </span>
+                </div>
+            </div>
+
+            {/* Right: total + arrow */}
+            <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="text-right">
+                    <p className="font-bold text-gray-800">{fmt(order.totalAmount || order.total_amount || 0)}</p>
+                    <p className="text-xs text-gray-400">{shippingMethodLabel(order.shippingMethod || order.shipping_method)}</p>
+                </div>
+                <FiChevronRight className="text-gray-300 group-hover:text-black transition-colors" size={20} />
+            </div>
+        </div>
+    );
+};
 
 export const MyOrders = () => {
     const [orders, setOrders] = useState([]);
@@ -10,23 +102,23 @@ export const MyOrders = () => {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
-    useEffect(() => {
-        loadOrders();
-    }, []);
+    // Filters
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    const [shippingFilter, setShippingFilter] = useState('Todos');
+    const [searchId, setSearchId] = useState('');
 
-    const loadOrders = async () => {
+    const loadOrders = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
             const ordersData = await OrderApiRepository.getUserOrders();
-            // Sort by creation date (newest first)
-
-            if (ordersData.length === 0) {
+            
+            if (!ordersData || ordersData.length === 0) {
                 setOrders([]);
-                console.log('No se encontraron órdenes');
-                setError('No se encontraron órdenes');
                 return;
             }
+            
             const sortedOrders = ordersData.sort((a, b) =>
                 new Date(b.createdAt) - new Date(a.createdAt)
             );
@@ -37,50 +129,54 @@ export const MyOrders = () => {
         } finally {
             setLoading(false);
         }
+    }, []);
+
+    useEffect(() => {
+        loadOrders();
+    }, [loadOrders]);
+
+    // Client-side filtering
+    const filtered = orders.filter(o => {
+        let matches = true;
+
+        if (shippingFilter !== 'Todos') {
+            const status = o.shippingStatus || o.shipping_status;
+            if (status !== shippingFilter) matches = false;
+        }
+
+        if (searchId) {
+            const idStr = String(o.orderId || o.order_id || '').toLowerCase();
+            if (!idStr.includes(searchId.toLowerCase())) matches = false;
+        }
+
+        if (dateFrom) {
+            if (new Date(o.createdAt || o.created_at) < new Date(dateFrom)) matches = false;
+        }
+
+        if (dateTo) {
+            const end = new Date(dateTo);
+            end.setHours(23, 59, 59, 999);
+            if (new Date(o.createdAt || o.created_at) > end) matches = false;
+        }
+
+        return matches;
+    });
+
+    const clearFilters = () => {
+        setDateFrom('');
+        setDateTo('');
+        setShippingFilter('Todos');
+        setSearchId('');
     };
 
-    const getPaymentStatusColor = (status) => {
-        const statusMap = {
-            'Paid': 'bg-green-100 text-green-800',
-            'Pending': 'bg-yellow-100 text-yellow-800',
-            'Failed': 'bg-red-100 text-red-800',
-            'Cancelled': 'bg-gray-100 text-gray-800',
-        };
-        return statusMap[status] || 'bg-gray-100 text-gray-800';
-    };
+    const hasFilters = dateFrom || dateTo || shippingFilter !== 'Todos' || searchId;
 
-    const getShippingStatusColor = (status) => {
-        const statusMap = {
-            'Pending': 'bg-gray-100 text-gray-800',
-            'Processing': 'bg-blue-100 text-blue-800',
-            'Shipped': 'bg-blue-100 text-blue-800',
-            'Delivered': 'bg-green-100 text-green-800',
-        };
-        return statusMap[status] || 'bg-gray-100 text-gray-800';
-    };
-
-    const getPaymentStatusText = (status) => {
-        const statusMap = {
-            'Paid': 'Pagado',
-            'Pending': 'Pendiente',
-            'Failed': 'Fallido',
-            'Cancelled': 'Cancelado',
-        };
-        return statusMap[status] || status;
-    };
-
-    const getShippingStatusText = (status) => {
-        const statusMap = {
-            'Pending': 'Pendiente',
-            'Processing': 'Procesando',
-            'Shipped': 'Enviado',
-            'Delivered': 'Entregado',
-        };
-        return statusMap[status] || status;
-    };
-
-    const handleOrderClick = (orderId) => {
-        navigate(`/orders/${orderId}`);
+    // Stats
+    const stats = {
+        total: orders.length,
+        pending: orders.filter(o => (o.shippingStatus || o.shipping_status) === 'Pending').length,
+        shipped: orders.filter(o => (o.shippingStatus || o.shipping_status) === 'Shipped').length,
+        delivered: orders.filter(o => (o.shippingStatus || o.shipping_status) === 'Delivered').length,
     };
 
     if (loading) {
@@ -91,162 +187,168 @@ export const MyOrders = () => {
         );
     }
 
-    if (error) {
-        return (
-            <div className="container mx-auto px-4 py-12">
-                <h1 className="text-3xl font-bold mb-8">Mis Compras</h1>
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-                    <p className="text-red-600 mb-4">{error}</p>
-                    <button
-                        onClick={loadOrders}
-                        className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
-                    >
-                        Reintentar
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="container mx-auto px-4 py-12">
-            <h1 className="text-3xl font-bold mb-8">Mis Compras</h1>
-
-            {orders.length === 0 ? (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-12 text-center">
-                    <svg
-                        className="mx-auto h-16 w-16 text-gray-400 mb-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                        />
-                    </svg>
-                    <h3 className="text-xl font-medium text-gray-900 mb-2">
-                        No tienes compras aún
-                    </h3>
-                    <p className="text-gray-500 mb-6">
-                        Cuando realices una compra, aparecerá aquí
-                    </p>
-                    <button
-                        onClick={() => navigate('/')}
-                        className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
-                    >
-                        Explorar Productos
-                    </button>
+        <div className="min-h-screen bg-gray-50 pb-12">
+            <div className="container mx-auto px-4 py-8 max-w-5xl">
+                {/* Header */}
+                <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-extrabold text-gray-800 flex items-center gap-3">
+                            <span className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
+                                <FiShoppingBag className="text-white" size={20} />
+                            </span>
+                            Mis Compras
+                        </h1>
+                        <p className="text-gray-500 mt-1 ml-1">Historial de todas tus órdenes realizadas</p>
+                    </div>
                 </div>
-            ) : (
-                <div className="space-y-6">
-                    {orders.map((order) => (
-                        <div
-                            key={order.id}
-                            onClick={() => handleOrderClick(order.id)}
-                            className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer"
+
+                {error ? (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+                        <FiAlertCircle className="text-red-400 mx-auto mb-2" size={32} />
+                        <p className="text-red-700 font-medium">Error al cargar las compras</p>
+                        <p className="text-red-500 text-sm mt-1">{error}</p>
+                        <button onClick={loadOrders} className="mt-3 px-4 py-2 bg-black text-white rounded-lg text-sm hover:bg-gray-800 transition-colors">
+                            Reintentar
+                        </button>
+                    </div>
+                ) : orders.length === 0 ? (
+                    <div className="bg-white border border-gray-200 rounded-xl p-12 text-center shadow-sm">
+                        <FiShoppingBag className="mx-auto text-gray-300 mb-4" size={48} />
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">No tenés compras aún</h3>
+                        <p className="text-gray-500 mb-6">Tus pedidos aparecerán en esta sección una vez que realices una compra.</p>
+                        <button
+                            onClick={() => navigate('/')}
+                            className="px-6 py-3 bg-black text-white rounded-lg font-bold hover:bg-gray-800 transition-colors"
                         >
-                            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-1">
-                                        Orden #{order.orderId}
-                                    </h3>
-                                    <p className="text-sm text-gray-500">
-                                        {formatDate(order.createdAt)}
-                                    </p>
+                            Ir a la tienda
+                        </button>
+                    </div>
+                ) : (
+                    <>
+                        {/* Stats */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                            {[
+                                { label: 'Total compras', value: stats.total, color: 'text-gray-800', bg: 'bg-white' },
+                                { label: 'En preparación', value: stats.pending, color: 'text-amber-600', bg: 'bg-amber-50' },
+                                { label: 'En camino', value: stats.shipped, color: 'text-blue-600', bg: 'bg-blue-50' },
+                                { label: 'Entregadas', value: stats.delivered, color: 'text-green-600', bg: 'bg-green-50' },
+                            ].map(({ label, value, color, bg }) => (
+                                <div key={label} className={`${bg} rounded-xl p-4 border border-gray-100 shadow-sm`}>
+                                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wide">{label}</p>
+                                    <p className={`text-3xl font-extrabold mt-1 ${color}`}>{value}</p>
                                 </div>
-                                <div className="flex flex-col sm:flex-row gap-2 mt-3 md:mt-0">
-                                    <span
-                                        className={`px-3 py-1 rounded-full text-xs font-medium text-center ${getPaymentStatusColor(
-                                            order.status
-                                        )}`}
-                                    >
-                                        {getPaymentStatusText(order.status)}
-                                    </span>
-                                    <span
-                                        className={`px-3 py-1 rounded-full text-xs font-medium text-center ${getShippingStatusColor(
-                                            order.shippingStatus
-                                        )}`}
-                                    >
-                                        Envío: {getShippingStatusText(order.shippingStatus)}
-                                    </span>
+                            ))}
+                        </div>
+
+                        {/* Filters and Search */}
+                        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-5">
+                            {/* Search Bar */}
+                            <div className="flex gap-2 mb-4">
+                                <div className="relative flex-1">
+                                    <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                    <input
+                                        type="text"
+                                        value={searchId}
+                                        onChange={e => setSearchId(e.target.value)}
+                                        placeholder="Buscar por ID de orden..."
+                                        className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-black outline-none transition-all font-mono"
+                                    />
+                                    {searchId && (
+                                        <button
+                                            onClick={() => setSearchId('')}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                        >
+                                            <FiX size={16} />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Product Images Gallery */}
-                            {order.items.length > 0 && (
-                                <div className="mb-4 overflow-x-auto">
-                                    <div className="flex gap-3 pb-2">
-                                        {order.items.map((item, index) => (
-                                            <div
-                                                key={index}
-                                                className="flex-shrink-0 relative"
-                                            >
-                                                <img
-                                                    src={item.productImage || 'https://via.placeholder.com/80x80?text=No+Image'}
-                                                    alt={item.productName}
-                                                    className="w-20 h-20 object-cover rounded-lg border border-gray-200"
-                                                    onError={(e) => {
-                                                        e.target.src = 'https://via.placeholder.com/80x80?text=No+Image';
-                                                    }}
-                                                />
-                                                {item.quantity > 1 && (
-                                                    <span className="absolute -top-2 -right-2 bg-black text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-medium">
-                                                        {item.quantity}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        ))}
+                            <div className="flex flex-wrap gap-3 items-end pt-4 border-t border-gray-100">
+                                {/* Date from */}
+                                <div className="flex-1 min-w-[150px]">
+                                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Desde</label>
+                                    <div className="relative">
+                                        <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                                        <input
+                                            type="date"
+                                            value={dateFrom}
+                                            onChange={e => setDateFrom(e.target.value)}
+                                            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-black outline-none transition-all"
+                                        />
                                     </div>
                                 </div>
-                            )}
-
-                            <div className="border-t border-gray-100 pt-4 mb-4">
-                                <h4 className="text-sm font-medium text-gray-700 mb-2">
-                                    Productos:
-                                </h4>
-                                <ul className="space-y-1">
-                                    {order.items.map((item, index) => (
-                                        <li key={index} className="text-sm text-gray-600">
-                                            • {item.productName}
-                                            {item.color && ` - ${item.color}`}
-                                            {item.size && ` - Talle ${item.size}`}
-                                            {' '}(x{item.quantity}) - {formatCurrency(item.price)}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-
-                            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                                <div>
-                                    <p className="text-sm text-gray-500">Total</p>
-                                    <p className="text-2xl font-bold">
-                                        {formatCurrency(order.totalAmount)}
-                                    </p>
-                                </div>
-                                <div className="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
-                                    <span className="text-sm font-medium mr-2">Ver detalle</span>
-                                    <svg
-                                        className="w-5 h-5"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M9 5l7 7-7 7"
+                                {/* Date to */}
+                                <div className="flex-1 min-w-[150px]">
+                                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Hasta</label>
+                                    <div className="relative">
+                                        <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                                        <input
+                                            type="date"
+                                            value={dateTo}
+                                            onChange={e => setDateTo(e.target.value)}
+                                            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-black outline-none transition-all"
                                         />
-                                    </svg>
+                                    </div>
+                                </div>
+                                {/* Shipping status */}
+                                <div className="flex-1 min-w-[160px]">
+                                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Estado</label>
+                                    <div className="relative">
+                                        <FiFilter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                                        <select
+                                            value={shippingFilter}
+                                            onChange={e => setShippingFilter(e.target.value)}
+                                            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-black outline-none bg-white transition-all appearance-none"
+                                        >
+                                            {SHIPPING_STATUSES.map(s => (
+                                                <option key={s} value={s}>
+                                                    {s === 'Todos' ? 'Todos los estados' : s === 'Pending' ? 'Pendiente' : s === 'Shipped' ? 'Enviado' : s === 'Delivered' ? 'Entregado' : 'Cancelado'}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                {/* Clear */}
+                                {hasFilters && (
+                                    <button
+                                        onClick={clearFilters}
+                                        className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 hover:text-black border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+                                    >
+                                        <FiX size={14} /> Limpiar
+                                    </button>
+                                )}
+                                {/* Result count */}
+                                <div className="text-sm font-semibold text-gray-500 whitespace-nowrap py-2 ml-auto">
+                                    {filtered.length} orden{filtered.length !== 1 ? 'es' : ''}
                                 </div>
                             </div>
                         </div>
-                    ))}
-                </div>
-            )}
+
+                        {/* Order List */}
+                        {filtered.length === 0 ? (
+                            <div className="text-center py-20 bg-white rounded-xl border border-gray-100 shadow-sm">
+                                <FiSearch className="mx-auto mb-3 text-gray-300" size={40} />
+                                <p className="font-bold text-gray-600">No se encontraron compras</p>
+                                <p className="text-sm text-gray-400 mt-1">
+                                    Probá ajustando los filtros de búsqueda
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {filtered.map(order => (
+                                    <OrderCard
+                                        key={order.id}
+                                        order={order}
+                                        onClick={() => navigate(`/orders/${order.id}`)}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
         </div>
     );
 };

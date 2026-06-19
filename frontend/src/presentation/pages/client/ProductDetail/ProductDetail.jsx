@@ -128,35 +128,60 @@ export const ProductDetail = () => {
     const isAddToCartDisabled = !selectedVariant || selectedVariant.available < quantity || addingToCart;
 
     return (
-        <div className="min-h-screen bg-white py-12">
-            <div className="container mx-auto px-4">
-                <div className="grid md:grid-cols-2 gap-12">
-                    {/* Image Carousel Section */}
-                    <div className="space-y-4">
+        <div className="min-h-screen bg-white py-8">
+            <div className="container mx-auto px-4 max-w-6xl">
+                {/* Breadcrumb */}
+                <nav className="text-sm text-gray-500 mb-8 flex items-center space-x-2">
+                    <span className="hover:text-black cursor-pointer" onClick={() => navigate('/')}>Inicio</span>
+                    <span>&gt;</span>
+                    <span className="hover:text-black cursor-pointer">Todos los productos</span>
+                    <span>&gt;</span>
+                    <span className="hover:text-black cursor-pointer">{product.category || 'Categoría'}</span>
+                    <span>&gt;</span>
+                    <span className="text-black font-medium">{product.name}</span>
+                </nav>
+
+                <div className="flex flex-col lg:flex-row gap-12">
+                    {/* Images Section */}
+                    <div className="w-full lg:w-3/5 flex flex-col-reverse md:flex-row gap-4">
+                        {/* Thumbnails (Vertical on MD+) */}
+                        {images.length > 1 && (
+                            <div className="flex flex-row md:flex-col gap-3 w-full md:w-20 flex-shrink-0 overflow-x-auto md:overflow-visible">
+                                {images.map((image, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={() => setCurrentImageIndex(index)}
+                                        className={`w-20 md:w-full aspect-[3/4] flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
+                                            index === currentImageIndex ? 'border-black' : 'border-transparent hover:border-gray-300'
+                                        }`}
+                                    >
+                                        <img src={image} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
                         {/* Main Image */}
-                        <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100">
+                        <div className="relative flex-1 aspect-[4/5] rounded-2xl overflow-hidden bg-gray-100 group">
                             <img
                                 src={images[currentImageIndex]}
-                                alt={`${product.name} - Image ${currentImageIndex + 1}`}
+                                alt={`${product.name}`}
                                 className="w-full h-full object-cover"
                             />
-
                             {/* Navigation Arrows */}
                             {images.length > 1 && (
                                 <>
                                     <button
-                                        onClick={prevImage}
-                                        className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-all shadow-lg"
-                                        aria-label="Previous image"
+                                        onClick={(e) => { e.stopPropagation(); prevImage(); }}
+                                        className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-all shadow-lg opacity-0 group-hover:opacity-100"
                                     >
                                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                         </svg>
                                     </button>
                                     <button
-                                        onClick={nextImage}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-all shadow-lg"
-                                        aria-label="Next image"
+                                        onClick={(e) => { e.stopPropagation(); nextImage(); }}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-all shadow-lg opacity-0 group-hover:opacity-100"
                                     >
                                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -164,110 +189,87 @@ export const ProductDetail = () => {
                                     </button>
                                 </>
                             )}
-
-                            {/* Image Indicators */}
-                            {images.length > 1 && (
-                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                                    {images.map((_, index) => (
-                                        <button
-                                            key={index}
-                                            onClick={() => setCurrentImageIndex(index)}
-                                            className={`w-2 h-2 rounded-full transition-all ${index === currentImageIndex
-                                                ? 'bg-white w-8'
-                                                : 'bg-white/50 hover:bg-white/75'
-                                                }`}
-                                            aria-label={`Go to image ${index + 1}`}
-                                        />
-                                    ))}
-                                </div>
-                            )}
+                            {/* Expand icon (decorative) */}
+                            <button className="absolute bottom-4 right-4 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md text-gray-700 hover:text-black transition-colors">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" /></svg>
+                            </button>
                         </div>
-
-                        {/* Thumbnail Images */}
-                        {images.length > 1 && (
-                            <div className="grid grid-cols-4 gap-2">
-                                {images.map((image, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => setCurrentImageIndex(index)}
-                                        className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${index === currentImageIndex
-                                            ? 'border-black'
-                                            : 'border-transparent hover:border-gray-300'
-                                            }`}
-                                    >
-                                        <img
-                                            src={image}
-                                            alt={`Thumbnail ${index + 1}`}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </button>
-                                ))}
-                            </div>
-                        )}
                     </div>
 
-                    {/* Product Information Section */}
-                    <div className="space-y-6">
-                        {/* Product Name and Price */}
-                        <div>
-                            <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-                            <p className="text-2xl font-bold">{formatCurrency(product.price)}</p>
+                    {/* Product Info Section */}
+                    <div className="w-full lg:w-2/5 flex flex-col">
+                        {/* Nuevo Badge */}
+                        <div className="mb-3">
+                            <span className="px-3 py-1 bg-black text-white text-xs font-bold uppercase tracking-wider rounded">Nuevo</span>
                         </div>
+
+                        {/* Title & Price */}
+                        <h1 className="text-4xl font-bold mb-3">{product.name}</h1>
+                        <p className="text-3xl font-bold mb-4">{formatCurrency(product.price)}</p>
 
                         {/* Stock Status */}
                         {product.isInStock() ? (
-                            <div className="flex items-center gap-2 text-green-600">
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            <div className="flex items-center gap-2 text-green-600 font-medium mb-8 pb-8 border-b border-gray-100">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                 </svg>
-                                <span className="font-medium">En stock</span>
+                                En stock
                             </div>
                         ) : (
-                            <div className="flex items-center gap-2 text-red-600">
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                            <div className="flex items-center gap-2 text-red-600 font-medium mb-8 pb-8 border-b border-gray-100">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
-                                <span className="font-medium">Sin stock</span>
+                                Sin stock
                             </div>
                         )}
 
                         {/* Description */}
-                        <div>
-                            <h2 className="text-lg font-semibold mb-2">Descripción</h2>
-                            <p className="text-gray-700 leading-relaxed">{product.description}</p>
+                        <div className="mb-8">
+                            <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-3">Descripción</h2>
+                            <p className="text-gray-500 text-sm leading-relaxed">{product.description}</p>
                         </div>
 
                         {/* Color Selection */}
                         {availableColors.length > 0 && (
-                            <div>
-                                <h3 className="font-semibold mb-3">
-                                    Color: <span className="font-normal text-gray-700">{selectedColor}</span>
+                            <div className="mb-8">
+                                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-3">
+                                    Color: <span className="font-normal text-gray-500 capitalize">{selectedColor}</span>
                                 </h3>
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-4">
                                     {availableColors.map((color) => {
-                                        const hasStock = product.variants.some(
-                                            v => v.color === color && v.available > 0
-                                        );
+                                        const hasStock = product.variants.some(v => v.color === color && v.available > 0);
+                                        // Simple color mapper for common colors
+                                        const colorMap = {
+                                            'negro': '#111111',
+                                            'blanco': '#FFFFFF',
+                                            'azul': '#1E3A8A', // Navy-ish
+                                            'gris': '#9CA3AF',
+                                            'rojo': '#EF4444',
+                                            'verde': '#10B981',
+                                            'amarillo': '#F59E0B',
+                                            'marron': '#78350F',
+                                            'marrón': '#78350F'
+                                        };
+                                        const bgColor = colorMap[color.toLowerCase()] || '#E5E7EB';
                                         return (
                                             <button
                                                 key={color}
                                                 onClick={() => {
                                                     setSelectedColor(color);
-                                                    // Auto-select first available size for this color
-                                                    const firstSize = product.variants.find(
-                                                        v => v.color === color && v.available > 0
-                                                    );
+                                                    const firstSize = product.variants.find(v => v.color === color && v.available > 0);
                                                     if (firstSize) setSelectedSize(firstSize.size);
                                                 }}
                                                 disabled={!hasStock}
-                                                className={`px-6 py-3 rounded-lg border-2 font-medium transition-all ${selectedColor === color
-                                                    ? 'border-black bg-black text-white'
-                                                    : hasStock
-                                                        ? 'border-gray-300 hover:border-black'
-                                                        : 'border-gray-200 text-gray-400 cursor-not-allowed'
-                                                    }`}
+                                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                                                    selectedColor === color ? 'ring-2 ring-black ring-offset-2' : ''
+                                                } ${!hasStock && 'opacity-50 cursor-not-allowed'}`}
                                             >
-                                                {color}
+                                                <div 
+                                                    className="w-full h-full rounded-full border border-gray-200 shadow-sm"
+                                                    style={{ backgroundColor: bgColor }}
+                                                    title={color}
+                                                />
                                             </button>
                                         );
                                     })}
@@ -277,11 +279,11 @@ export const ProductDetail = () => {
 
                         {/* Size Selection */}
                         {availableSizes.length > 0 && (
-                            <div>
-                                <h3 className="font-semibold mb-3">
-                                    Talla: <span className="font-normal text-gray-700">{selectedSize}</span>
+                            <div className="mb-8">
+                                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-3">
+                                    Talla: <span className="font-normal text-gray-500">{selectedSize}</span>
                                 </h3>
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-3">
                                     {availableSizes.map((size) => {
                                         const variant = product.findVariant(selectedColor, size);
                                         const hasStock = variant && variant.available > 0;
@@ -290,12 +292,13 @@ export const ProductDetail = () => {
                                                 key={size}
                                                 onClick={() => setSelectedSize(size)}
                                                 disabled={!hasStock}
-                                                className={`px-6 py-3 rounded-lg border-2 font-medium transition-all ${selectedSize === size
-                                                    ? 'border-black bg-black text-white'
-                                                    : hasStock
-                                                        ? 'border-gray-300 hover:border-black'
-                                                        : 'border-gray-200 text-gray-400 cursor-not-allowed line-through'
-                                                    }`}
+                                                className={`min-w-[4rem] h-12 rounded border font-medium text-sm transition-all ${
+                                                    selectedSize === size
+                                                        ? 'border-black bg-black text-white'
+                                                        : hasStock
+                                                            ? 'border-gray-200 text-gray-700 hover:border-black'
+                                                            : 'border-gray-100 text-gray-300 bg-gray-50 cursor-not-allowed'
+                                                }`}
                                             >
                                                 {size}
                                             </button>
@@ -305,70 +308,95 @@ export const ProductDetail = () => {
                             </div>
                         )}
 
-                        {/* Stock availability for selected variant */}
+                        {/* Stock available banner */}
                         {selectedVariant && (
-                            <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 flex items-center gap-3 mb-8">
+                                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                </svg>
                                 <p className="text-sm text-gray-600">
-                                    Disponibles: <span className="font-semibold text-gray-900">{selectedVariant.available} unidades</span>
+                                    Disponibles: <span className="font-bold text-gray-900">{selectedVariant.available} unidades</span>
                                 </p>
                             </div>
                         )}
 
-                        {/* Quantity Selector */}
-                        <div>
-                            <h3 className="font-semibold mb-3">Cantidad</h3>
-                            <div className="flex items-center gap-4">
-                                <button
-                                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                    className="w-10 h-10 rounded-lg border-2 border-gray-300 hover:border-black transition-colors flex items-center justify-center font-bold"
-                                    disabled={quantity <= 1}
-                                >
-                                    -
-                                </button>
-                                <span className="text-xl font-semibold w-12 text-center">{quantity}</span>
-                                <button
-                                    onClick={() => {
-                                        if (selectedVariant && quantity < selectedVariant.available) {
-                                            setQuantity(quantity + 1);
-                                        }
-                                    }}
-                                    className="w-10 h-10 rounded-lg border-2 border-gray-300 hover:border-black transition-colors flex items-center justify-center font-bold"
-                                    disabled={!selectedVariant || quantity >= selectedVariant.available}
-                                >
-                                    +
-                                </button>
+                        {/* Quantity */}
+                        <div className="mb-6">
+                            <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-3">Cantidad</h3>
+                            <div className="flex gap-4">
+                                <div className="flex items-center border border-gray-200 rounded-md overflow-hidden h-12 w-32">
+                                    <button
+                                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                        className="w-10 h-full flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"
+                                        disabled={quantity <= 1}
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4"/></svg>
+                                    </button>
+                                    <span className="flex-1 text-center font-semibold text-sm">{quantity}</span>
+                                    <button
+                                        onClick={() => {
+                                            if (selectedVariant && quantity < selectedVariant.available) {
+                                                setQuantity(quantity + 1);
+                                            }
+                                        }}
+                                        className="w-10 h-full flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"
+                                        disabled={!selectedVariant || quantity >= selectedVariant.available}
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Add to Cart Button */}
-                        <button
-                            onClick={handleAddToCart}
-                            disabled={isAddToCartDisabled}
-                            className={`w-full py-4 rounded-lg font-semibold text-lg transition-all ${isAddToCartDisabled
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-black text-white hover:bg-gray-800 hover-lift'
+                        {/* Buttons */}
+                        <div className="flex gap-4">
+                            <button
+                                onClick={handleAddToCart}
+                                disabled={isAddToCartDisabled}
+                                className={`flex-1 h-14 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 ${
+                                    isAddToCartDisabled
+                                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                        : 'bg-black text-white hover:bg-gray-900 hover-lift'
                                 }`}
-                        >
-                            {addingToCart ? 'Agregando...' : 'Agregar al Carrito'}
-                        </button>
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                                {addingToCart ? 'Agregando...' : 'Agregar al Carrito'}
+                            </button>
+                            <button className="w-14 h-14 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:border-black hover:text-black transition-colors">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                            </button>
+                        </div>
 
-                        {/* Additional Info */}
-                        <div className="border-t pt-6 space-y-3 text-sm text-gray-600">
-                            <div className="flex items-center gap-2">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                                </svg>
-                                <span>Envío gratis en compras superiores a $50.000</span>
+                    </div>
+                </div>
+
+                {/* Bottom Info Bar */}
+                <div className="mt-16 bg-gray-50 rounded-2xl p-6 md:p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                        <div className="flex items-center gap-4 justify-center md:border-r border-gray-200">
+                            <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 21h.01M16 21h.01M4 17h16M4 17V7m0 10l-1-1m1 1a2 2 0 104 0m-4 0a2 2 0 114 0m12 0a2 2 0 104 0m-4 0a2 2 0 114 0m0 0V9l-3-3h-4v11m7-11a2 2 0 00-2-2H9a2 2 0 00-2 2v1m0 0H5" /></svg>
+                            <div>
+                                <p className="font-semibold text-gray-900">Envío gratis en compras</p>
+                                <p className="text-gray-500">superiores a $50.000</p>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span>Garantía de devolución de 30 días</span>
+                        </div>
+                        <div className="flex items-center gap-4 justify-center md:border-r border-gray-200">
+                            <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                            <div>
+                                <p className="font-semibold text-gray-900">Garantía de devolución</p>
+                                <p className="text-gray-500">de 30 días</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4 justify-center">
+                            <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                            <div>
+                                <p className="font-semibold text-gray-900">Compra segura</p>
+                                <p className="text-gray-500">Tus datos protegidos</p>
                             </div>
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     );

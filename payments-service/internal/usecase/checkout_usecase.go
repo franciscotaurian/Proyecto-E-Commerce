@@ -93,21 +93,24 @@ func (uc *CheckoutUseCase) CreateOrder(ctx context.Context, order *domain.Order)
 	uc.reservationWorker.StartTimer(order.OrderID, order.Items)
 
 	// Step 4: Generate Mercado Pago preference
-	items := make([]client.PreferenceItem, len(order.Items)+1)
-	for i, item := range order.Items {
-		items[i] = client.PreferenceItem{
+	items := make([]client.PreferenceItem, 0, len(order.Items)+1)
+	for _, item := range order.Items {
+		items = append(items, client.PreferenceItem{
 			Title:       item.ProductName,
 			Quantity:    item.Quantity,
 			UnitPrice:   item.Price,
 			Description: fmt.Sprintf("Color: %s, Size: %s", item.Color, item.Size),
-		}
+		})
 	}
 
-	items[len(order.Items)] = client.PreferenceItem{
-		Title:       "Envio",
-		Quantity:    1,
-		UnitPrice:   order.ShippingInfo.ShippingCost,
-		Description: "Envio a domicilio",
+	// Only add shipping item if there is a cost (MercadoPago rejects unit_price = 0)
+	if order.ShippingInfo.ShippingCost > 0 {
+		items = append(items, client.PreferenceItem{
+			Title:       "Envio",
+			Quantity:    1,
+			UnitPrice:   order.ShippingInfo.ShippingCost,
+			Description: "Envio a domicilio",
+		})
 	}
 
 	paymentURL, err := uc.mercadoPagoClient.CreatePreference(order.OrderID, items, uc.webhookURL)
@@ -138,8 +141,13 @@ func (uc *CheckoutUseCase) releaseAllStock(items []domain.OrderItem) {
 }
 
 // GetOrder retrieves an order by ID
-func (uc *CheckoutUseCase) GetOrder(ctx context.Context, _id string) (*domain.Order, error) {
-	return uc.orderRepo.FindByID(ctx, _id)
+func (uc *CheckoutUseCase) GetOrder(ctx context.Context, id string) (*domain.Order, error) {
+	if len(id) == 24 {
+		if order, err := uc.orderRepo.FindByID(ctx, id); err == nil {
+			return order, nil
+		}
+	}
+	return uc.orderRepo.FindByOrderID(ctx, id)
 }
 
 // GetUserOrders retrieves all orders for a user

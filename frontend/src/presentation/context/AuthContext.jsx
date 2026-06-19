@@ -15,9 +15,22 @@ export const AuthProvider = ({ children }) => {
             try {
                 const authenticated = await AuthApiRepository.isAuthenticated();
                 if (authenticated) {
-                    const currentUser = await AuthApiRepository.getCurrentUser();
-                    setUser(currentUser);
-                    setIsAuthenticated(true);
+                    try {
+                        // Try to get fresh profile from backend
+                        const freshProfile = await UserApiRepository.getProfile();
+                        // Import setUser dynamically or use a known method if possible
+                        // But wait, we can just use the user from getProfile
+                        setUser(freshProfile);
+                        // Also update local storage so it persists between reloads
+                        const { setUser: saveToLocal } = await import('../../infrastructure/storage/LocalStorageService.js');
+                        saveToLocal(freshProfile);
+                        setIsAuthenticated(true);
+                    } catch (err) {
+                        // Fallback to local storage if API fails
+                        const currentUser = await AuthApiRepository.getCurrentUser();
+                        setUser(currentUser);
+                        setIsAuthenticated(true);
+                    }
                 }
             } catch (error) {
                 console.error('Failed to load user:', error);
@@ -65,6 +78,9 @@ export const AuthProvider = ({ children }) => {
         try {
             const updatedUser = await UserApiRepository.updateProfile(userData);
             setUser(updatedUser);
+            // Save to local storage
+            const { setUser: saveToLocal } = await import('../../infrastructure/storage/LocalStorageService.js');
+            saveToLocal(updatedUser);
             return updatedUser;
         } catch (error) {
             throw error;

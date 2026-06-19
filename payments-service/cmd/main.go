@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -28,7 +29,6 @@ func main() {
 	usersServiceURL := getEnv("USERS_SERVICE_URL", "http://users-service:8080")
 	mercadoPagoToken := getEnv("MERCADOPAGO_ACCESS_TOKEN", "TEST-ACCESS-TOKEN")
 	webhookURL := getEnv("WEBHOOK_URL", "http://localhost:8083/api/v1/webhook/mercadopago")
-	frontendURL := getEnv("FRONTEND_URL", "http://localhost:5173")
 
 	// Mercado Pago redirect URLs - point to backend redirect endpoints (same ngrok tunnel)
 	mercadoPagoSuccessURL := getEnv("MERCADOPAGO_SUCCESS_URL", "http://localhost:8083/payment/success")
@@ -112,7 +112,11 @@ func main() {
 	router.Use(middleware.LoggingMiddleware(internalLogger))
 
 	// Setup routes
-	http.SetupRoutes(router, handler, jwtSecret, frontendURL)
+	http.SetupRoutes(router, handler, jwtSecret)
+
+	// Run startup cleanup: cancel orphaned Pending orders from previous service instance
+	internalLogger.Info("Running startup cleanup of expired pending orders...")
+	reservationWorker.CleanupExpiredOrders(context.Background())
 
 	internalLogger.Info("Payments service started on port " + port)
 

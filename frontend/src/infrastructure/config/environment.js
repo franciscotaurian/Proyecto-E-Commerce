@@ -3,9 +3,9 @@
 
 const config = {
     api: {
-        products: import.meta.env.VITE_PRODUCTS_API_URL || 'http://localhost:8082',
-        users: import.meta.env.VITE_USERS_API_URL || 'http://localhost:8081',
-        payments: import.meta.env.VITE_PAYMENTS_API_URL || 'http://localhost:8083',
+        products: import.meta.env.VITE_PRODUCTS_API_URL || '/api/products',
+        users: import.meta.env.VITE_USERS_API_URL || '/api/users',
+        payments: import.meta.env.VITE_PAYMENTS_API_URL || '/api/payments',
     },
     app: {
         name: 'E-Commerce',

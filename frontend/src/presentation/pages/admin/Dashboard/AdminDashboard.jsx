@@ -27,6 +27,11 @@ export const AdminDashboard = () => {
                     <h2 className="font-bold text-xl mb-2">Mis Ventas</h2>
                     <p className="text-gray-600">Ver y gestionar ventas</p>
                 </Link>
+
+                <Link to="/admin/banners" className="p-6 bg-white border-2 border-black rounded-lg hover-lift">
+                    <h2 className="font-bold text-xl mb-2">Banners Home</h2>
+                    <p className="text-gray-600">Gestionar banners de la página principal</p>
+                </Link>
             </div>
         </div>
     );

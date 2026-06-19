@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import OrderApiRepository from '../../../../infrastructure/api/OrderApiRepository.js';
 import Spinner from '../../../components/common/Spinner.jsx';
 import Button from '../../../components/common/Button.jsx';
 import { formatCurrency, formatDateTime } from '../../../../shared/utils/formatCurrency.js';
 
 export const PaymentConfirmation = () => {
-    const { orderId } = useParams();
+    const { orderId: pathOrderId } = useParams();
+    const [searchParams] = useSearchParams();
+    // MercadoPago sends the order ID as ?external_reference when redirecting directly to frontend
+    const orderId = pathOrderId || searchParams.get('external_reference');
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [notified, setNotified] = useState(false);

@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import OrderApiRepository from '../../../../infrastructure/api/OrderApiRepository.js';
 import Spinner from '../../../components/common/Spinner.jsx';
 import { formatCurrency, formatDate } from '../../../../shared/utils/formatCurrency.js';
 
 export const OrderDetail = () => {
-    const { orderId } = useParams();
+    const { orderId: pathOrderId } = useParams();
+    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    
+    // MercadoPago redirects can append success/pending/failure as the path ID
+    const isInvalidPathId = ['success', 'pending', 'failure'].includes(pathOrderId);
+    const orderId = isInvalidPathId ? searchParams.get('external_reference') : (pathOrderId || searchParams.get('external_reference'));
+
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);

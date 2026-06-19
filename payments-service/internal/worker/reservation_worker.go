@@ -109,3 +109,45 @@ func (w *ReservationWorker) handleTimeout(orderID string, items []domain.OrderIt
 	delete(w.timers, orderID)
 	w.mu.Unlock()
 }
+
+// CleanupExpiredOrders finds all Pending orders older than 15 minutes (from a previous
+// service instance whose timers were lost on restart), releases their stock,
+// and marks them as Cancelled. Should be called once on service startup.
+func (w *ReservationWorker) CleanupExpiredOrders(ctx context.Context) {
+	orders, err := w.orderRepo.FindExpiredPendingOrders(ctx, 15*time.Minute)
+	if err != nil {
+		w.logger.Error(fmt.Sprintf("Startup cleanup: failed to find expired pending orders: %v", err))
+		return
+	}
+
+	if len(orders) == 0 {
+		w.logger.Info("Startup cleanup: no expired pending orders found")
+		return
+	}
+
+	w.logger.Warn(fmt.Sprintf("Startup cleanup: found %d expired pending order(s), processing...", len(orders)))
+
+	for _, order := range orders {
+		// Release stock for each item in the expired order
+		for _, item := range order.Items {
+			if err := w.productClient.ReleaseStock(item.ProductID, item.Color, item.Size, item.Quantity); err != nil {
+				w.logger.Error(fmt.Sprintf(
+					"Startup cleanup: failed to release stock for product %s in order %s: %v",
+					item.ProductID, order.OrderID, err,
+				))
+			} else {
+				w.logger.Info(fmt.Sprintf(
+					"Startup cleanup: released stock for product %s in order %s",
+					item.ProductID, order.OrderID,
+				))
+			}
+		}
+
+		// Mark order as cancelled
+		if err := w.orderRepo.UpdateStatus(ctx, order.OrderID, domain.OrderStatusCancelled); err != nil {
+			w.logger.Error(fmt.Sprintf("Startup cleanup: failed to cancel expired order %s: %v", order.OrderID, err))
+		} else {
+			w.logger.Info(fmt.Sprintf("Startup cleanup: order %s cancelled (expired on previous run)", order.OrderID))
+		}
+	}
+}

@@ -74,7 +74,7 @@ export class User {
         this.dni = data.dni || '';
         this.email = data.email || '';
         this.phone = data.phone || '';
-        this.address = new Address(data.address || {});
+        this.address = new Address(data.address || data);
         this.isAdmin = data.is_admin || data.isAdmin || false;
         this.isVerified = data.is_verified || data.isVerified || false;
         this.createdAt = data.created_at || data.createdAt;

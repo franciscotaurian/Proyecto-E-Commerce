@@ -26,6 +26,22 @@ export const Checkout = () => {
         zipCode: user?.address?.zipCode || '',
     });
 
+    // Sync form with user data when it loads
+    React.useEffect(() => {
+        if (user && user.address) {
+            setShippingAddress({
+                street: user.address.street || '',
+                number: user.address.number || '',
+                floor: user.address.floor || '',
+                apartment: user.address.apartment || '',
+                city: user.address.city || '',
+                province: user.address.province || '',
+                country: user.address.country || 'Argentina',
+                zipCode: user.address.zipCode || '',
+            });
+        }
+    }, [user]);
+
     // Determine shipping method based on ZIP code (CP 5000 = Córdoba capital)
     const isCordoba = shippingAddress.zipCode.trim() === CORDOBA_ZIP_CODE;
     const shippingMethod = isCordoba ? SHIPPING_METHODS.WHATSAPP : SHIPPING_METHODS.SEND;

@@ -118,6 +118,64 @@ export class ProductApiRepository extends IProductRepository {
             throw new Error(`Failed to delete category: ${error.message}`);
         }
     }
+
+    // Banner operations
+    async getActiveBanner() {
+        try {
+            const response = await productsClient.get('/api/v1/banners/active');
+            return response.data;
+        } catch (error) {
+            if (error.response && error.response.status === 404) {
+                return null; // No active banner
+            }
+            throw new Error(`Failed to fetch active banner: ${error.message}`);
+        }
+    }
+
+    async getAdminBanners() {
+        try {
+            const response = await productsClient.get('/api/v1/admin/banners');
+            return response.data.banners || [];
+        } catch (error) {
+            throw new Error(`Failed to fetch banners: ${error.message}`);
+        }
+    }
+
+    async createBanner(bannerData) {
+        try {
+            const response = await productsClient.post('/api/v1/admin/banners', bannerData);
+            return response.data.banner;
+        } catch (error) {
+            throw new Error(`Failed to create banner: ${error.message}`);
+        }
+    }
+
+    async updateBanner(id, bannerData) {
+        try {
+            const response = await productsClient.put(`/api/v1/admin/banners/${id}`, bannerData);
+            return response.data.banner;
+        } catch (error) {
+            throw new Error(`Failed to update banner: ${error.message}`);
+        }
+    }
+
+    async setActiveBanner(id) {
+        try {
+            await productsClient.put(`/api/v1/admin/banners/${id}/activate`);
+            return true;
+        } catch (error) {
+            throw new Error(`Failed to activate banner: ${error.message}`);
+        }
+    }
+
+    async deleteBanner(id) {
+        try {
+            await productsClient.delete(`/api/v1/admin/banners/${id}`);
+            return true;
+        } catch (error) {
+            throw new Error(`Failed to delete banner: ${error.message}`);
+        }
+    }
 }
 
 export default new ProductApiRepository();

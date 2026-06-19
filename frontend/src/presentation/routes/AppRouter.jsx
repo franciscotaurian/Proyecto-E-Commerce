@@ -26,6 +26,7 @@ import ProductList from '../pages/admin/Products/ProductEdit.jsx';
 import ProductCreate from '../pages/admin/Products/ProductCreate.jsx';
 import CategoryCreate from '../pages/admin/Categories/CategoryCreate.jsx';
 import SalesManagement from '../pages/admin/Sales/SalesManagement.jsx';
+import BannerManagement from '../pages/admin/Banners/BannerManagement.jsx';
 
 export const AppRouter = () => {
     return (
@@ -42,6 +43,7 @@ export const AppRouter = () => {
                     <Route path="cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
                     <Route path="checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
                     <Route path="payment-confirmation/:orderId" element={<ProtectedRoute><PaymentConfirmation /></ProtectedRoute>} />
+                    <Route path="payment-confirmation" element={<ProtectedRoute><PaymentConfirmation /></ProtectedRoute>} />
                     <Route path="payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
                     <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                     <Route path="profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
@@ -54,6 +56,7 @@ export const AppRouter = () => {
                     <Route path="admin/products" element={<AdminRoute><ProductList /></AdminRoute>} />
                     <Route path="admin/categories/create" element={<AdminRoute><CategoryCreate /></AdminRoute>} />
                     <Route path="admin/sales" element={<AdminRoute><SalesManagement /></AdminRoute>} />
+                    <Route path="admin/banners" element={<AdminRoute><BannerManagement /></AdminRoute>} />
                 </Route>
             </Routes>
         </BrowserRouter>

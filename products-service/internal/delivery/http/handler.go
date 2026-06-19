@@ -16,15 +16,17 @@ type Handler struct {
 	categoryUseCase *usecase.CategoryUseCase
 	searchUseCase   *usecase.SearchUseCase
 	cartUseCase     *usecase.CartUseCase
+	bannerUseCase   *usecase.BannerUseCase
 }
 
 // NewHandler creates a new HTTP handler
-func NewHandler(productUseCase *usecase.ProductUseCase, categoryUseCase *usecase.CategoryUseCase, searchUseCase *usecase.SearchUseCase, cartUseCase *usecase.CartUseCase) *Handler {
+func NewHandler(productUseCase *usecase.ProductUseCase, categoryUseCase *usecase.CategoryUseCase, searchUseCase *usecase.SearchUseCase, cartUseCase *usecase.CartUseCase, bannerUseCase *usecase.BannerUseCase) *Handler {
 	return &Handler{
 		productUseCase:  productUseCase,
 		categoryUseCase: categoryUseCase,
 		searchUseCase:   searchUseCase,
 		cartUseCase:     cartUseCase,
+		bannerUseCase:   bannerUseCase,
 	}
 }
 
@@ -465,4 +467,90 @@ func (h *Handler) ClearUserCart(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Cart cleared successfully"})
+}
+
+// Banner Handlers
+
+func (h *Handler) CreateBanner(c *gin.Context) {
+	var banner domain.Banner
+	if err := c.ShouldBindJSON(&banner); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := h.bannerUseCase.CreateBanner(c.Request.Context(), &banner)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Banner created successfully",
+		"banner":  banner,
+	})
+}
+
+func (h *Handler) GetActiveBanner(c *gin.Context) {
+	banner, err := h.bannerUseCase.GetActiveBanner(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Active banner not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, banner)
+}
+
+func (h *Handler) ListBanners(c *gin.Context) {
+	banners, err := h.bannerUseCase.ListBanners(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"banners": banners})
+}
+
+func (h *Handler) UpdateBanner(c *gin.Context) {
+	id := c.Param("id")
+
+	var banner domain.Banner
+	if err := c.ShouldBindJSON(&banner); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := h.bannerUseCase.UpdateBanner(c.Request.Context(), id, &banner)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Banner updated successfully",
+		"banner":  banner,
+	})
+}
+
+func (h *Handler) SetActiveBanner(c *gin.Context) {
+	id := c.Param("id")
+
+	err := h.bannerUseCase.SetActiveBanner(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Banner activated successfully"})
+}
+
+func (h *Handler) DeleteBanner(c *gin.Context) {
+	id := c.Param("id")
+
+	err := h.bannerUseCase.DeleteBanner(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Banner deleted successfully"})
 }

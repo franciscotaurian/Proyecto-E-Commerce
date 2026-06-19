@@ -23,6 +23,7 @@ type OrderRepository interface {
 	FindByID(ctx context.Context, id string) (*domain.Order, error)
 	FindByOrderID(ctx context.Context, orderID string) (*domain.Order, error)
 	FindByUserID(ctx context.Context, userID string) ([]domain.Order, error)
+	FindExpiredPendingOrders(ctx context.Context, olderThan time.Duration) ([]domain.Order, error)
 	FindByShippingStatus(ctx context.Context, shippingStatus string) ([]domain.Order, error)
 	FindAllPaid(ctx context.Context, from, to *time.Time) ([]domain.ReponseOrder, error)
 	UpdateStatus(ctx context.Context, orderID string, status domain.OrderStatus) error
@@ -85,9 +86,13 @@ func (r *MongoOrderRepository) FindByOrderID(ctx context.Context, orderID string
 	return &order, nil
 }
 
-// FindByUserID retrieves all orders for a user
+// FindByUserID retrieves all non-cancelled orders for a user
 func (r *MongoOrderRepository) FindByUserID(ctx context.Context, userID string) ([]domain.Order, error) {
-	cursor, err := r.collection.Find(ctx, bson.M{"user_id": userID})
+	filter := bson.M{
+		"user_id": userID,
+		"status":  bson.M{"$ne": string(domain.OrderStatusCancelled)},
+	}
+	cursor, err := r.collection.Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -98,6 +103,26 @@ func (r *MongoOrderRepository) FindByUserID(ctx context.Context, userID string) 
 		return nil, err
 	}
 
+	return orders, nil
+}
+
+// FindExpiredPendingOrders retrieves all Pending orders created before the given duration ago
+func (r *MongoOrderRepository) FindExpiredPendingOrders(ctx context.Context, olderThan time.Duration) ([]domain.Order, error) {
+	cutoff := time.Now().Add(-olderThan)
+	filter := bson.M{
+		"status":     string(domain.OrderStatusPending),
+		"created_at": bson.M{"$lt": cutoff},
+	}
+	cursor, err := r.collection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var orders []domain.Order
+	if err = cursor.All(ctx, &orders); err != nil {
+		return nil, err
+	}
 	return orders, nil
 }
 

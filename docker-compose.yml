@@ -104,7 +104,7 @@ services:
       - PRODUCTS_SERVICE_URL=http://products-service:8080
       - USERS_SERVICE_URL=http://users-service:8080
       - MERCADOPAGO_ACCESS_TOKEN=${MERCADOPAGO_ACCESS_TOKEN}
-      - MERCADOPAGO_SUCCESS_URL=${MERCADOPAGO_SUCCESS_URL:-http://localhost:5173/home}
+      - MERCADOPAGO_SUCCESS_URL=${MERCADOPAGO_SUCCESS_URL:-http://localhost:5173/}
       - MERCADOPAGO_FAILURE_URL=${MERCADOPAGO_FAILURE_URL:-http://localhost:5173/home}
       - MERCADOPAGO_PENDING_URL=${MERCADOPAGO_PENDING_URL:-http://localhost:5173/home}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}

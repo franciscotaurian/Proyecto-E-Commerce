@@ -32,7 +32,12 @@ export class OrderApiRepository extends IOrderRepository {
                 },
             });
 
-            return new Order(response.data.order || response.data);
+            const raw = response.data;
+            const rawOrder = raw.order || raw;
+            // payment_url lives at the root of the response, not inside the nested order object
+            return new Order({ ...rawOrder, payment_url: raw.payment_url || rawOrder.payment_url });
+
+
         } catch (error) {
             throw new Error(`Failed to create order: ${error.message}`);
         }

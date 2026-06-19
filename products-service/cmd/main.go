@@ -57,11 +57,13 @@ func main() {
 	productRepo := repository.NewMongoProductRepository(mongoClient.Database)
 	categoryRepo := repository.NewMongoCategoryRepository(mongoClient.Database)
 	cartRepo := repository.NewMongoCartRepository(mongoClient.Database)
+	bannerRepo := repository.NewMongoBannerRepository(mongoClient.Database)
 
 	// Initialize use cases
 	productUseCase := usecase.NewProductUseCase(productRepo, categoryRepo, r2Client)
 	categoryUseCase := usecase.NewCategoryUseCase(categoryRepo, productRepo, r2Client)
 	cartUseCase := usecase.NewCartUseCase(cartRepo, productRepo)
+	bannerUseCase := usecase.NewBannerUseCase(bannerRepo, r2Client)
 	searchUseCase, err := usecase.NewSearchUseCase(productRepo)
 	if err != nil {
 		internalLogger.Error("Failed to initialize search engine: " + err.Error())
@@ -86,7 +88,7 @@ func main() {
 	}
 
 	// Initialize HTTP handler
-	handler := http.NewHandler(productUseCase, categoryUseCase, searchUseCase, cartUseCase)
+	handler := http.NewHandler(productUseCase, categoryUseCase, searchUseCase, cartUseCase, bannerUseCase)
 
 	// Setup Gin router
 	router := gin.Default()
