@@ -53,6 +53,34 @@ func (uc *CategoryUseCase) FindCategoryByName(ctx context.Context, name string) 
 	return uc.categoryRepo.FindCategoryByName(ctx, name)
 }
 
+func (uc *CategoryUseCase) GetFeaturedCategories(ctx context.Context) ([]domain.Category, error) {
+	return uc.categoryRepo.GetFeaturedCategories(ctx)
+}
+
+func (uc *CategoryUseCase) SetFeaturedCategory(ctx context.Context, id string, featured bool) error {
+	if id == "" {
+		return errors.New("category id is required")
+	}
+
+	// Enforce max 2 featured categories when activating
+	if featured {
+		count, err := uc.categoryRepo.CountFeaturedCategories(ctx)
+		if err != nil {
+			return err
+		}
+		// Check if this category is already featured to avoid false rejection
+		existing, err := uc.categoryRepo.FindByID(ctx, id)
+		if err != nil {
+			return err
+		}
+		if count >= 2 && !existing.IsFeatured {
+			return errors.New("only 2 categories can be featured at the same time")
+		}
+	}
+
+	return uc.categoryRepo.SetFeaturedCategory(ctx, id, featured)
+}
+
 func (uc *CategoryUseCase) UpdateCategory(ctx context.Context, id string, category *domain.Category) error {
 
 	if category.Name == "" {
@@ -72,7 +100,6 @@ func (uc *CategoryUseCase) UpdateCategory(ctx context.Context, id string, catego
 	}
 
 	// Busca la categoría por id y verifica que exista antes de actualizar
-
 	existingCategory, err := uc.categoryRepo.FindByID(ctx, id)
 	if err != nil {
 		return err
@@ -81,6 +108,9 @@ func (uc *CategoryUseCase) UpdateCategory(ctx context.Context, id string, catego
 	if existingCategory == nil {
 		return errors.New("category not found")
 	}
+
+	// Preserve the is_featured flag so it doesn't get overwritten
+	category.IsFeatured = existingCategory.IsFeatured
 
 	// actualización del nombre de categoria en los productos asociados
 	// Buscar productos con el nombre antiguo

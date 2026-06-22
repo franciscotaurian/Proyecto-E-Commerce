@@ -297,7 +297,7 @@ func (h *Handler) UpdateCategory(c *gin.Context) {
 }
 
 func (h *Handler) DeleteCategory(c *gin.Context) {
-	name := c.Param("name")
+	name := c.Param("id")
 
 	err := h.categoryUseCase.DeleteCategory(c.Request.Context(), name)
 	if err != nil {
@@ -306,6 +306,36 @@ func (h *Handler) DeleteCategory(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Category deleted successfully"})
+}
+
+func (h *Handler) SetFeaturedCategory(c *gin.Context) {
+	id := c.Param("id")
+
+	var req struct {
+		Featured bool `json:"featured"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := h.categoryUseCase.SetFeaturedCategory(c.Request.Context(), id, req.Featured)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Category featured status updated successfully"})
+}
+
+func (h *Handler) GetFeaturedCategories(c *gin.Context) {
+	categories, err := h.categoryUseCase.GetFeaturedCategories(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"categories": categories})
 }
 
 // GetCart retrieves the user's shopping cart

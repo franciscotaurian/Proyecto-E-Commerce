@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+
 type MongoCategoryRepository struct {
 	collection *mongo.Collection
 }
@@ -19,8 +20,11 @@ type CategoryRepository interface {
 	FindAllCategories(ctx context.Context) ([]domain.Category, error)
 	FindCategoryByName(ctx context.Context, name string) (*domain.Category, error)
 	UpdateCategory(ctx context.Context, id string, category *domain.Category) error
-	DeleteCategory(ctx context.Context, id string) error
+	DeleteCategory(ctx context.Context, name string) error
 	FindByID(ctx context.Context, id string) (*domain.Category, error)
+	SetFeaturedCategory(ctx context.Context, id string, featured bool) error
+	GetFeaturedCategories(ctx context.Context) ([]domain.Category, error)
+	CountFeaturedCategories(ctx context.Context) (int64, error)
 }
 
 func NewMongoCategoryRepository(db *mongo.Database) CategoryRepository {
@@ -89,13 +93,8 @@ func (r *MongoCategoryRepository) UpdateCategory(ctx context.Context, id string,
 	return nil
 }
 
-func (r *MongoCategoryRepository) DeleteCategory(ctx context.Context, id string) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return ErrCategoryNotFound
-	}
-
-	result, err := r.collection.DeleteOne(ctx, bson.M{"_id": objectID})
+func (r *MongoCategoryRepository) DeleteCategory(ctx context.Context, name string) error {
+	result, err := r.collection.DeleteOne(ctx, bson.M{"name": name})
 	if err != nil {
 		return err
 	}
@@ -123,3 +122,52 @@ func (r *MongoCategoryRepository) FindByID(ctx context.Context, id string) (*dom
 	}
 	return &category, nil
 }
+
+func (r *MongoCategoryRepository) SetFeaturedCategory(ctx context.Context, id string, featured bool) error {
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return ErrCategoryNotFound
+	}
+
+	filter := bson.M{"_id": objectID}
+	update := bson.M{"$set": bson.M{
+		"is_featured": featured,
+		"updated_at":  time.Now(),
+	}}
+
+	result, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+
+	if result.MatchedCount == 0 {
+		return ErrCategoryNotFound
+	}
+
+	return nil
+}
+
+func (r *MongoCategoryRepository) GetFeaturedCategories(ctx context.Context) ([]domain.Category, error) {
+	cursor, err := r.collection.Find(ctx, bson.M{"is_featured": true})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var categories []domain.Category
+	if err = cursor.All(ctx, &categories); err != nil {
+		return nil, err
+	}
+	return categories, nil
+}
+
+func (r *MongoCategoryRepository) CountFeaturedCategories(ctx context.Context) (int64, error) {
+	count, err := r.collection.CountDocuments(ctx, bson.M{"is_featured": true})
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+
+

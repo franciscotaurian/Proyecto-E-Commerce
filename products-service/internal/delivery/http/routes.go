@@ -20,6 +20,7 @@ func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
 		public.GET("/products/:id", handler.GetProduct)
 		public.GET("/search", handler.Search)
 		public.GET("/categories", handler.ListCategories)
+		public.GET("/categories/featured", handler.GetFeaturedCategories)
 		public.GET("/banners/active", handler.GetActiveBanner)
 	}
 
@@ -33,7 +34,8 @@ func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
 		admin.POST("/categories", handler.CreateCategory)
 		admin.PUT("/categories/:id", handler.UpdateCategory)
 		admin.DELETE("/categories/:id", handler.DeleteCategory)
-		
+		admin.PUT("/categories/:id/feature", handler.SetFeaturedCategory)
+
 		admin.GET("/banners", handler.ListBanners)
 		admin.POST("/banners", handler.CreateBanner)
 		admin.PUT("/banners/:id", handler.UpdateBanner)
@@ -51,7 +53,7 @@ func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
 	}
 
 	// Cart routes (protected)
-	cartRoutes := router.Group("/api/v1/cart") // Assuming cart routes are also under /api/v1
+	cartRoutes := router.Group("/api/v1/cart")
 	cartRoutes.Use(middleware.AuthMiddleware(jwtSecret))
 	{
 		cartRoutes.GET("", handler.GetCart)

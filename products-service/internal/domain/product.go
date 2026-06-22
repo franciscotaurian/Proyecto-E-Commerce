@@ -49,11 +49,13 @@ type Product struct {
 }
 
 type Category struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
-	Name      string             `bson:"name" json:"name"`
-	Image     string             `bson:"image" json:"image"`
-	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
-	UpdatedAt time.Time          `bson:"updated_at" json:"updated_at"`
+	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
+	Name        string             `bson:"name" json:"name"`
+	Description string             `bson:"description" json:"description"`
+	Image       string             `bson:"image" json:"image"`
+	IsFeatured  bool               `bson:"is_featured" json:"is_featured"`
+	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt   time.Time          `bson:"updated_at" json:"updated_at"`
 }
 
 // Validate validates product data
