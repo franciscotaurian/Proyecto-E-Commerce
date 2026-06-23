@@ -18,6 +18,7 @@ func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
 		public.POST("/login", handler.Login)
 		public.GET("/auth/verify/:token", handler.VerifyEmail)
 		public.POST("/auth/reset-password-email", handler.SendResetPasswordEmail)
+		public.POST("/auth/resend-verification", handler.ResendVerificationEmail)
 		public.GET("/auth/reset-password/:token", handler.ShowResetPasswordForm)
 		public.POST("/auth/reset-password", handler.ResetPassword)
 	}
@@ -34,6 +35,7 @@ func SetupRoutes(router *gin.Engine, handler *Handler, jwtSecret string) {
 	internal := router.Group("/internal")
 	{
 		internal.GET("/user_information/:id", handler.GetUserInformation)
+		internal.GET("/is-verified/:id", handler.IsVerifiedUser)
 	}
 
 	// Health check

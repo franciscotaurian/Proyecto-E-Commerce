@@ -39,7 +39,9 @@ export class OrderApiRepository extends IOrderRepository {
 
 
         } catch (error) {
-            throw new Error(`Failed to create order: ${error.message}`);
+            // Preserve backend error message if available
+            const backendMessage = error.response?.data?.error;
+            throw new Error(backendMessage || error.message);
         }
     }
 
@@ -150,6 +152,15 @@ export class OrderApiRepository extends IOrderRepository {
             return true;
         } catch (error) {
             throw new Error(`Failed to update shipping status: ${error.message}`);
+        }
+    }
+
+    async resendVerificationEmail(email) {
+        try {
+            const { usersClient } = await import('../config/httpClient.js');
+            await usersClient.post('/api/v1/auth/resend-verification', { email });
+        } catch (error) {
+            throw new Error(error.message || 'Error al reenviar el email de verificación');
         }
     }
 }

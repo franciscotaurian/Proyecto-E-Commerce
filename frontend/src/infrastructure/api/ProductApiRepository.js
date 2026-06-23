@@ -119,6 +119,24 @@ export class ProductApiRepository extends IProductRepository {
         }
     }
 
+    async setFeaturedCategory(id, featured) {
+        try {
+            await productsClient.put(`/api/v1/admin/categories/${id}/feature`, { featured });
+            return true;
+        } catch (error) {
+            throw new Error(`Failed to update featured status: ${error.message}`);
+        }
+    }
+
+    async getFeaturedCategories() {
+        try {
+            const response = await productsClient.get('/api/v1/categories/featured');
+            return response.data.categories.map(c => new Category(c));
+        } catch (error) {
+            throw new Error(`Failed to fetch featured categories: ${error.message}`);
+        }
+    }
+
     // Banner operations
     async getActiveBanner() {
         try {

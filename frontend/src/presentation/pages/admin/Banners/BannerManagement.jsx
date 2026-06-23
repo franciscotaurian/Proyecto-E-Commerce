@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiUploadCloud, FiEdit2, FiTrash2, FiSave, FiX, FiCheckCircle } from 'react-icons/fi';
+import { FiUploadCloud, FiEdit2, FiTrash2, FiSave, FiX, FiCheckCircle, FiStar } from 'react-icons/fi';
 import productApi from '../../../../infrastructure/api/ProductApiRepository.js';
 
 export const BannerManagement = () => {
@@ -7,6 +7,11 @@ export const BannerManagement = () => {
     const [loading, setLoading] = useState(true);
     const [banners, setBanners] = useState([]);
     const [editingId, setEditingId] = useState(null);
+
+    // Featured categories state
+    const [allCategories, setAllCategories] = useState([]);
+    const [loadingCategories, setLoadingCategories] = useState(true);
+    const [featureLoading, setFeatureLoading] = useState(null); // stores category id being toggled
 
     const [formData, setFormData] = useState({
         title: '',
@@ -19,6 +24,7 @@ export const BannerManagement = () => {
 
     useEffect(() => {
         fetchBanners();
+        fetchAllCategories();
     }, []);
 
     const fetchBanners = async () => {
@@ -30,6 +36,45 @@ export const BannerManagement = () => {
             console.error('Error fetching banners:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchAllCategories = async () => {
+        try {
+            setLoadingCategories(true);
+            const data = await productApi.getCategories();
+            setAllCategories(data);
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        } finally {
+            setLoadingCategories(false);
+        }
+    };
+
+    const featuredCount = allCategories.filter(c => c.is_featured).length;
+
+    const handleToggleFeatured = async (category) => {
+        const newFeatured = !category.is_featured;
+
+        if (newFeatured && featuredCount >= 2) {
+            alert('Solo se pueden tener 2 categorías destacadas a la vez. Desactivá una primero.');
+            return;
+        }
+
+        try {
+            setFeatureLoading(category.id);
+            await productApi.setFeaturedCategory(category.id, newFeatured);
+            // Update local state immediately for snappy UX
+            setAllCategories(prev =>
+                prev.map(c =>
+                    c.id === category.id ? { ...c, is_featured: newFeatured } : c
+                )
+            );
+        } catch (error) {
+            console.error('Error al actualizar categoría destacada:', error);
+            alert(`Error: ${error.message}`);
+        } finally {
+            setFeatureLoading(null);
         }
     };
 
@@ -359,6 +404,99 @@ export const BannerManagement = () => {
                     ) : (
                         <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300">
                             No hay banners creados aún.
+                        </div>
+                    )}
+                </div>
+
+                {/* ── Gestión de Categorías Destacadas ─────────────────────── */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div className="flex items-center justify-between border-b pb-4 mb-6">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                <FiStar className="text-amber-500" />
+                                Categorías Destacadas
+                            </h2>
+                            <p className="text-sm text-gray-500 mt-1">
+                                Seleccioná hasta 2 categorías para mostrar en la sección destacada de la home.
+                            </p>
+                        </div>
+                        <span className={`text-sm font-bold px-3 py-1 rounded-full ${featuredCount >= 2 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
+                            {featuredCount}/2 seleccionadas
+                        </span>
+                    </div>
+
+                    {loadingCategories ? (
+                        <div className="text-center py-8 text-gray-500">Cargando categorías...</div>
+                    ) : allCategories.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {allCategories.map(category => {
+                                const isDisabled = !category.is_featured && featuredCount >= 2;
+                                const isToggling = featureLoading === category.id;
+
+                                return (
+                                    <div
+                                        key={category.id}
+                                        className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                                            category.is_featured
+                                                ? 'border-amber-400 bg-amber-50 ring-1 ring-amber-200'
+                                                : isDisabled
+                                                ? 'border-gray-100 bg-gray-50 opacity-50'
+                                                : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        {/* Thumbnail */}
+                                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0 border border-gray-300">
+                                            {category.image ? (
+                                                <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs text-center px-1">Sin imagen</div>
+                                            )}
+                                        </div>
+
+                                        {/* Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-semibold text-gray-800 truncate">{category.name}</p>
+                                            {category.description && (
+                                                <p className="text-xs text-gray-500 truncate mt-0.5">{category.description}</p>
+                                            )}
+                                            {category.is_featured && (
+                                                <span className="inline-flex items-center gap-1 text-xs text-amber-600 font-semibold mt-1">
+                                                    <FiStar size={10} /> Actualmente destacada
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Toggle Button */}
+                                        <button
+                                            onClick={() => handleToggleFeatured(category)}
+                                            disabled={isDisabled || isToggling}
+                                            title={
+                                                isDisabled
+                                                    ? 'Ya hay 2 categorías destacadas. Desactivá una primero.'
+                                                    : category.is_featured
+                                                    ? 'Quitar de destacadas'
+                                                    : 'Marcar como destacada'
+                                            }
+                                            className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5 flex-shrink-0 ${
+                                                isToggling
+                                                    ? 'bg-gray-200 text-gray-400 cursor-wait'
+                                                    : category.is_featured
+                                                    ? 'bg-amber-500 text-white hover:bg-amber-600'
+                                                    : isDisabled
+                                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-600'
+                                            }`}
+                                        >
+                                            <FiStar size={14} />
+                                            {isToggling ? '...' : category.is_featured ? 'Quitar' : 'Destacar'}
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                            No hay categorías creadas. Creá categorías primero desde el panel de Categorías.
                         </div>
                     )}
                 </div>

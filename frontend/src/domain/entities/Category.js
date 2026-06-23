@@ -3,7 +3,9 @@ export class Category {
     constructor(data = {}) {
         this.id = data.id || data._id || '';
         this.name = data.name || '';
+        this.description = data.description || '';
         this.image = data.image || '';
+        this.is_featured = data.is_featured || false;
         this.createdAt = data.created_at || data.createdAt;
         this.updatedAt = data.updated_at || data.updatedAt;
     }
@@ -28,3 +30,4 @@ export class Category {
 }
 
 export default Category;
+

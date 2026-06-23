@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiX, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiSearch, FiX, FiChevronLeft, FiChevronRight, FiChevronDown, FiGrid } from 'react-icons/fi';
 import ProductApiRepository from '../../../../infrastructure/api/ProductApiRepository.js';
 import Spinner from '../../../components/common/Spinner.jsx';
 import { formatCurrency } from '../../../../shared/utils/formatCurrency.js';
@@ -10,26 +10,42 @@ const ITEMS_PER_PAGE = 12;
 
 export const Home = () => {
     const [categories, setCategories] = useState([]);
+    const [featuredCategories, setFeaturedCategories] = useState([]);
     const [allProducts, setAllProducts] = useState([]);
     const [heroBanner, setHeroBanner] = useState(null);
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
     const navigate = useNavigate();
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setCategoryDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Load all data once
     const loadData = useCallback(async () => {
         try {
             setLoading(true);
-            const [categoriesData, productsData, bannerData] = await Promise.all([
+            const [categoriesData, productsData, bannerData, featuredData] = await Promise.all([
                 ProductApiRepository.getCategories(),
                 ProductApiRepository.getProducts({ limit: 200 }),
                 ProductApiRepository.getActiveBanner(),
+                ProductApiRepository.getFeaturedCategories(),
             ]);
             setCategories(categoriesData);
             setAllProducts(productsData.products || []);
             setHeroBanner(bannerData);
+            setFeaturedCategories(featuredData);
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
@@ -55,6 +71,7 @@ export const Home = () => {
     const handleCategoryClick = (catName) => {
         setSelectedCategory(prev => prev === catName ? '' : catName);
         setSearchQuery('');
+        setCategoryDropdownOpen(false);
     };
 
     const clearFilters = () => {
@@ -157,13 +174,13 @@ export const Home = () => {
             </div>
 
             {/* ── Featured Categories ────────────────────────────────────── */}
-            {categories.length > 0 && (
+            {featuredCategories.length > 0 && (
                 <section className="py-16 bg-white">
                     <div className="max-w-6xl mx-auto px-4">
                         <p className="text-xs font-bold tracking-[0.2em] text-gray-500 mb-2">EXPLORÁ</p>
                         <h2 className="text-3xl font-bold mb-10 tracking-tight">CATEGORÍAS DESTACADAS</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {categories.slice(0, 2).map(category => (
+                            {featuredCategories.map(category => (
                                 <div
                                     key={category.id}
                                     onClick={() => handleCategoryClick(category.name)}
@@ -176,9 +193,11 @@ export const Home = () => {
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent flex flex-col justify-center px-10 transition-opacity">
                                         <h3 className="text-white text-3xl font-bold uppercase tracking-wide mb-2">{category.name}</h3>
-                                        <p className="text-gray-200 text-sm tracking-wider uppercase mb-6 max-w-[200px]">
-                                            {category.name === 'Remeras' ? 'Básicos que nunca fallan' : 'Comodidad y estilo urbano'}
-                                        </p>
+                                        {category.description && (
+                                            <p className="text-gray-200 text-sm tracking-wider uppercase mb-6 max-w-[200px]">
+                                                {category.description}
+                                            </p>
+                                        )}
                                         <button className="bg-white text-black text-sm font-bold uppercase px-6 py-3 w-max rounded-sm hover:bg-gray-100 transition-colors">
                                             VER COLECCIÓN
                                         </button>
@@ -194,8 +213,82 @@ export const Home = () => {
             <section className="py-12">
                 <div className="max-w-6xl mx-auto px-4">
 
-                    {/* Search bar + active filter indicator */}
+                    {/* Search bar + category dropdown + active filter indicator */}
                     <div className="flex flex-col md:flex-row gap-4 items-start md:items-center mb-8">
+
+                        {/* Category Dropdown */}
+                        <div className="relative flex-shrink-0" ref={dropdownRef}>
+                            <button
+                                onClick={() => setCategoryDropdownOpen(prev => !prev)}
+                                className={`flex items-center gap-2 px-4 py-3 rounded-xl border font-medium text-sm transition-all shadow-sm ${
+                                    categoryDropdownOpen || selectedCategory
+                                        ? 'bg-black text-white border-black'
+                                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                                }`}
+                                aria-haspopup="listbox"
+                                aria-expanded={categoryDropdownOpen}
+                            >
+                                <FiGrid size={16} />
+                                <span>Categorías</span>
+                                <FiChevronDown
+                                    size={15}
+                                    className={`transition-transform duration-200 ${categoryDropdownOpen ? 'rotate-180' : ''}`}
+                                />
+                            </button>
+
+                            {/* Dropdown panel */}
+                            {categoryDropdownOpen && (
+                                <div className="absolute left-0 top-full mt-2 z-50 bg-white rounded-xl shadow-xl border border-gray-100 py-2 min-w-[200px] animate-fade-in">
+                                    {/* All products option */}
+                                    <button
+                                        onClick={() => { clearFilters(); setCategoryDropdownOpen(false); }}
+                                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center gap-2 ${
+                                            !selectedCategory
+                                                ? 'bg-gray-100 text-gray-900 font-semibold'
+                                                : 'text-gray-700 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        <span className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0"></span>
+                                        Todos los productos
+                                    </button>
+
+                                    {/* Divider */}
+                                    {categories.length > 0 && (
+                                        <div className="border-t border-gray-100 my-1" />
+                                    )}
+
+                                    {/* Category list */}
+                                    {categories.map(category => (
+                                        <button
+                                            key={category.id}
+                                            onClick={() => handleCategoryClick(category.name)}
+                                            className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center gap-2 ${
+                                                selectedCategory === category.name
+                                                    ? 'bg-black text-white font-semibold'
+                                                    : 'text-gray-700 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            {category.image ? (
+                                                <img
+                                                    src={category.image}
+                                                    alt=""
+                                                    className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                                                />
+                                            ) : (
+                                                <span className="w-2 h-2 rounded-full bg-indigo-400 flex-shrink-0"></span>
+                                            )}
+                                            {category.name}
+                                        </button>
+                                    ))}
+
+                                    {categories.length === 0 && (
+                                        <p className="px-4 py-3 text-xs text-gray-400">No hay categorías disponibles</p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Search input */}
                         <div className="relative flex-1 w-full">
                             <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                             <input

@@ -5,8 +5,8 @@ import './index.css';
 
 function App() {
   return (
-    <AppProvider> //global context
-      <AppRouter /> //routes
+    <AppProvider> {/* global context */}
+      <AppRouter /> {/* routes */}
     </AppProvider>
   );
 }

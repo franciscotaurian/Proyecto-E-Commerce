@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -51,4 +52,25 @@ func (c *UserClient) GetUserInfo(userID string) (*userInfo, error) {
 	}
 
 	return &userInfo, nil
+}
+
+func (c *UserClient) IsVerifiedUser(userID string) (bool, error) {
+	resp, err := c.client.Get(c.baseURL + "/internal/is-verified/" + userID)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var response struct {
+		IsVerified bool `json:"isVerified"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return false, err
+	}
+
+	return response.IsVerified, nil
 }

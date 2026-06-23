@@ -8,7 +8,7 @@ export default defineConfig({
     host: true,
     port: 5173,
     allowedHosts: [
-      "meat-deliver-lap-integrity.trycloudflare.com"
+      "significantly-focuses-measurement-generating.trycloudflare.com"
     ],
     proxy: {
       '/api/products': {

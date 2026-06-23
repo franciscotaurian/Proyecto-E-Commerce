@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiUploadCloud, FiEdit2, FiTrash2, FiSave, FiX } from 'react-icons/fi';
+import { FiUploadCloud, FiEdit2, FiTrash2, FiSave, FiX, FiStar } from 'react-icons/fi';
 import productApi from '../../../../infrastructure/api/ProductApiRepository.js';
 
 export const CategoryCreate = () => {
@@ -9,7 +9,8 @@ export const CategoryCreate = () => {
     const [editingId, setEditingId] = useState(null);
 
     const [formData, setFormData] = useState({
-        name: ''
+        name: '',
+        description: '',
     });
     const [images, setImages] = useState([]);
 
@@ -74,7 +75,11 @@ export const CategoryCreate = () => {
             return;
         }
 
-        // Aunque se puedan cargar varias imágenes en la UI, el backend espera un string 'image'.
+        if (images.length === 0) {
+            alert('La imagen es requerida. Las categorías deben tener imagen para poder ser destacadas.');
+            return;
+        }
+
         // Si la imagen ya es una URL de R2 (edición sin nueva imagen), la enviamos tal cual.
         // Si es una nueva imagen, enviamos el base64 para que el backend la suba a R2.
         let imageValue = '';
@@ -82,9 +87,11 @@ export const CategoryCreate = () => {
             const firstImg = images[0];
             imageValue = firstImg.isUrl ? firstImg.preview : (firstImg.base64 || firstImg.preview);
         }
+
         const payload = {
             name: formData.name,
-            image: imageValue
+            description: formData.description,
+            image: imageValue,
         };
 
         try {
@@ -101,7 +108,7 @@ export const CategoryCreate = () => {
             fetchCategories();
         } catch (error) {
             console.error('Error al guardar categoría:', error);
-            alert('Hubo un error al guardar la categoría.');
+            alert(`Hubo un error al guardar la categoría: ${error.message}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -109,7 +116,10 @@ export const CategoryCreate = () => {
 
     const handleEdit = (category) => {
         setEditingId(category.id);
-        setFormData({ name: category.name });
+        setFormData({
+            name: category.name,
+            description: category.description || '',
+        });
         if (category.image) {
             // Marcar como URL existente (link de R2) para no tratarla como base64 al enviar
             setImages([{ preview: category.image, base64: null, isUrl: true }]);
@@ -128,14 +138,14 @@ export const CategoryCreate = () => {
                 if (editingId === category.id) resetForm();
             } catch (error) {
                 console.error('Error al eliminar categoría:', error);
-                alert('Hubo un error al eliminar la categoría.');
+                alert(`Hubo un error al eliminar la categoría: ${error.message}`);
             }
         }
     };
 
     const resetForm = () => {
         setEditingId(null);
-        setFormData({ name: '' });
+        setFormData({ name: '', description: '' });
         setImages([]);
     };
 
@@ -171,7 +181,9 @@ export const CategoryCreate = () => {
 
                     <div className="space-y-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Nombre <span className="text-red-500">*</span>
+                            </label>
                             <input
                                 type="text"
                                 name="name"
@@ -183,7 +195,30 @@ export const CategoryCreate = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-3">Imágenes (JPG o PNG, máx 5MB)</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Descripción{' '}
+                                <span className="text-xs text-gray-400 font-normal">
+                                    (texto que aparece debajo del nombre en la home)
+                                </span>
+                            </label>
+                            <input
+                                type="text"
+                                name="description"
+                                value={formData.description}
+                                onChange={handleInputChange}
+                                placeholder="Ej: Básicos que nunca fallan"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Imagen (JPG o PNG, máx 5MB) <span className="text-red-500">*</span>
+                            </label>
+                            <p className="text-xs text-amber-600 mb-3 flex items-center gap-1">
+                                <FiStar size={12} className="text-amber-500" />
+                                La imagen es obligatoria para poder seleccionar la categoría como destacada en la home.
+                            </p>
                             <div className="relative group cursor-pointer mb-4">
                                 <input
                                     type="file"
@@ -242,7 +277,17 @@ export const CategoryCreate = () => {
                                             )}
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-lg text-gray-800">{category.name}</h3>
+                                            <div className="flex items-center gap-2">
+                                                <h3 className="font-semibold text-lg text-gray-800">{category.name}</h3>
+                                                {category.is_featured && (
+                                                    <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-semibold">
+                                                        <FiStar size={10} /> Destacada
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {category.description && (
+                                                <p className="text-sm text-gray-500 mt-0.5">{category.description}</p>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
@@ -276,4 +321,3 @@ export const CategoryCreate = () => {
 };
 
 export default CategoryCreate;
-

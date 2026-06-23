@@ -34,16 +34,14 @@ export class AuthApiRepository extends IAuthRepository {
                 email: userData.email,
                 phone: userData.phone,
                 password: userData.password,
-                address: {
-                    street: userData.address.street,
-                    number: userData.address.number,
-                    floor: userData.address.floor,
-                    apartment: userData.address.apartment,
-                    city: userData.address.city,
-                    province: userData.address.province,
-                    country: userData.address.country,
-                    zip_code: userData.address.zipCode,
-                },
+                street: userData.address.street,
+                number: userData.address.number,
+                floor: userData.address.floor,
+                apartment: userData.address.apartment,
+                city: userData.address.city,
+                province: userData.address.province,
+                country: userData.address.country,
+                zip_code: userData.address.zipCode,
             });
 
             const { token, user } = response.data;

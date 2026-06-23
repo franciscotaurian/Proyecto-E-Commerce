@@ -78,6 +78,7 @@ func main() {
 	checkoutUseCase := usecase.NewCheckoutUseCase(
 		orderRepo,
 		productClient,
+		userClient,
 		mercadoPagoClient,
 		reservationWorker,
 		internalLogger,

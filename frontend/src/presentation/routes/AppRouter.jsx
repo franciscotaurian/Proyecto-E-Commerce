@@ -17,6 +17,7 @@ import Profile from '../pages/client/Profile/Profile.jsx';
 import EditProfile from '../pages/client/Profile/EditProfile.jsx';
 import Login from '../pages/client/Auth/Login.jsx';
 import Register from '../pages/client/Auth/Register.jsx';
+import ForgotPassword from '../pages/client/Auth/ForgotPassword.jsx';
 import MyOrders from '../pages/client/Orders/MyOrders.jsx';
 import OrderDetail from '../pages/client/Orders/OrderDetail.jsx';
 
@@ -38,6 +39,7 @@ export const AppRouter = () => {
                     <Route path="products/:id" element={<ProductDetail />} />
                     <Route path="login" element={<Login />} />
                     <Route path="register" element={<Register />} />
+                    <Route path="forgot-password" element={<ForgotPassword />} />
 
                     {/* Protected Client Routes */}
                     <Route path="cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />

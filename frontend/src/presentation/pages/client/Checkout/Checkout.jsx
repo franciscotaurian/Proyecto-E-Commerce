@@ -14,6 +14,8 @@ export const Checkout = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [userNotVerified, setUserNotVerified] = useState(false);
+    const [resendState, setResendState] = useState('idle'); // 'idle' | 'loading' | 'sent' | 'error'
 
     const [shippingAddress, setShippingAddress] = useState({
         street: user?.address?.street || '',
@@ -64,9 +66,21 @@ export const Checkout = () => {
         setShippingAddress(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleResendVerification = async () => {
+        setResendState('loading');
+        try {
+            await OrderApiRepository.resendVerificationEmail(user?.email);
+            setResendState('sent');
+        } catch (err) {
+            setResendState('error');
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setUserNotVerified(false);
+        setResendState('idle');
 
         if (!isArgentina) {
             setError('Por el momento solo realizamos envíos dentro de Argentina.');
@@ -96,7 +110,12 @@ export const Checkout = () => {
                 navigate(`/payment-confirmation/${order.orderId}`);
             }
         } catch (err) {
-            setError(err.message || 'Error al crear la orden');
+            const msg = err.message || '';
+            if (msg.toLowerCase().includes('not verified') || msg.toLowerCase().includes('user is not verified')) {
+                setUserNotVerified(true);
+            } else {
+                setError(msg || 'Error al crear la orden');
+            }
         } finally {
             setLoading(false);
         }
@@ -115,9 +134,56 @@ export const Checkout = () => {
         <div className="container mx-auto px-4 py-12">
             <h1 className="text-3xl font-bold mb-8">Finalizar Compra</h1>
 
+            {/* Generic error */}
             {error && (
                 <div className="bg-red-50 text-red-600 p-4 rounded mb-6">
                     {error}
+                </div>
+            )}
+
+            {/* Unverified user error with resend flow */}
+            {userNotVerified && (
+                <div className="bg-amber-50 border border-amber-300 text-amber-900 p-5 rounded-lg mb-6">
+                    <div className="flex items-start gap-3 mb-3">
+                        <span className="text-2xl">⚠️</span>
+                        <div>
+                            <p className="font-semibold text-base">
+                                Error al procesar la orden: el usuario no tiene el email verificado.
+                            </p>
+                            <p className="text-sm mt-1 text-amber-700">
+                                Debes verificar tu email para poder completar la compra.
+                            </p>
+                        </div>
+                    </div>
+
+                    {resendState !== 'sent' && (
+                        <button
+                            id="resend-verification-btn"
+                            onClick={handleResendVerification}
+                            disabled={resendState === 'loading'}
+                            className="mt-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-colors"
+                        >
+                            {resendState === 'loading'
+                                ? 'Enviando...'
+                                : '📧 Reenviar código de verificación de email'}
+                        </button>
+                    )}
+
+                    {resendState === 'sent' && (
+                        <div className="mt-3 flex items-start gap-2 text-sm text-green-800 bg-green-50 border border-green-300 p-3 rounded-lg">
+                            <span className="text-lg">✅</span>
+                            <p>
+                                <strong>¡Email enviado!</strong> Ingresa a tu casilla de correo electrónico
+                                para verificar tu email y vuelve a intentar procesar el pago.
+                            </p>
+                        </div>
+                    )}
+
+                    {resendState === 'error' && (
+                        <p className="mt-2 text-sm text-red-600">
+                            No se pudo reenviar el email. Por favor, intentá nuevamente.
+                        </p>
+                    )}
                 </div>
             )}
 

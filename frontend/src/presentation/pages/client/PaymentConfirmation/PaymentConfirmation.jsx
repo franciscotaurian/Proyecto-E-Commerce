@@ -31,9 +31,11 @@ export const PaymentConfirmation = () => {
 
     const handleWhatsAppNotify = async () => {
         try {
-            await OrderApiRepository.sendWhatsAppNotification(orderId);
+            const whatsappUrl = await OrderApiRepository.sendWhatsAppNotification(orderId);
+            if (whatsappUrl) {
+                window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+            }
             setNotified(true);
-            alert('Vendedor notificado exitosamente');
         } catch (error) {
             alert('Error al notificar al vendedor');
         }

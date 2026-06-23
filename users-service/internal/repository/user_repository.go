@@ -13,9 +13,10 @@ import (
 )
 
 var (
-	ErrUserNotFound   = errors.New("user not found")
-	ErrDuplicateEmail = errors.New("email already exists")
-	ErrDuplicateDNI   = errors.New("DNI already exists")
+	ErrUserNotFound    = errors.New("user not found")
+	ErrDuplicateEmail  = errors.New("email already exists")
+	ErrDuplicateDNI    = errors.New("DNI already exists")
+	ErrUserNotVerified = errors.New("user not verified")
 )
 
 // UserRepository interface defines user data operations
@@ -27,6 +28,7 @@ type UserRepository interface {
 	FindByVerificationToken(ctx context.Context, token string) (*domain.User, error)
 	Update(ctx context.Context, userID string, user *domain.UpdateUserInformation) (*domain.User, error)
 	UpdateVerificationStatus(ctx context.Context, userID string, isVerified bool) error
+	UpdateVerificationToken(ctx context.Context, userID string, token string) error
 	FindByResetPasswordToken(ctx context.Context, token string) (*domain.User, error)
 	UpdatePassword(ctx context.Context, userID string, password string) error
 	UpdateResetPasswordToken(ctx context.Context, userID string, token string) error
@@ -169,7 +171,7 @@ func (r *MongoUserRepository) UpdateVerificationStatus(ctx context.Context, user
 	update := bson.M{
 		"$set": bson.M{
 			"is_verified":        isVerified,
-			"verification_token": "", // Clear verification token after verification
+			"verification_token": "",
 		},
 	}
 
@@ -232,6 +234,31 @@ func (r *MongoUserRepository) UpdateResetPasswordToken(ctx context.Context, user
 	update := bson.M{
 		"$set": bson.M{
 			"reset_password_token": token,
+		},
+	}
+
+	result, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+
+	if result.MatchedCount == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}
+
+func (r *MongoUserRepository) UpdateVerificationToken(ctx context.Context, userID string, token string) error {
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return ErrUserNotFound
+	}
+
+	filter := bson.M{"_id": objectID}
+	update := bson.M{
+		"$set": bson.M{
+			"verification_token": token,
 		},
 	}
 

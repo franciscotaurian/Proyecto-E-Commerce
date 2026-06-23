@@ -18,6 +18,7 @@ import (
 type CheckoutUseCase struct {
 	orderRepo         repository.OrderRepository
 	productClient     *client.ProductServiceClient
+	userClient        *client.UserClient
 	mercadoPagoClient *client.MercadoPagoClient
 	reservationWorker *worker.ReservationWorker
 	logger            *logger.InternalLogger
@@ -28,6 +29,7 @@ type CheckoutUseCase struct {
 func NewCheckoutUseCase(
 	orderRepo repository.OrderRepository,
 	productClient *client.ProductServiceClient,
+	userClient *client.UserClient,
 	mercadoPagoClient *client.MercadoPagoClient,
 	reservationWorker *worker.ReservationWorker,
 	log *logger.InternalLogger,
@@ -36,6 +38,7 @@ func NewCheckoutUseCase(
 	return &CheckoutUseCase{
 		orderRepo:         orderRepo,
 		productClient:     productClient,
+		userClient:        userClient,
 		mercadoPagoClient: mercadoPagoClient,
 		reservationWorker: reservationWorker,
 		logger:            log,
@@ -56,6 +59,15 @@ func (uc *CheckoutUseCase) CreateOrder(ctx context.Context, order *domain.Order)
 	order.OrderID = uuid.New().String()
 	order.Status = domain.OrderStatusPending
 	order.ShippingInfo.ShippingStatus = domain.ShippingPending
+
+	isVerified, errUser := uc.userClient.IsVerifiedUser(order.UserID)
+	if errUser != nil {
+		return fmt.Errorf("error during the user verification: %w", errUser)
+	}
+
+	if !isVerified {
+		return fmt.Errorf("user is not verified")
+	}
 
 	//validacion de monto para precio de envio
 	order.ShippingInfo.SelectShippingCost(order.TotalAmount)

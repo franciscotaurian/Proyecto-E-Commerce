@@ -70,6 +70,12 @@ export const Login = () => {
 
                 <div className="text-center">
                     <p className="text-sm text-gray-600 mb-2">
+                        ¿Has olvidado tu contraseña?{' '}
+                        <Link to="/forgot-password" className="text-black font-medium hover:underline">
+                            Haz click aquí
+                        </Link>
+                    </p>
+                    <p className="text-sm text-gray-600">
                         ¿No tienes cuenta?{' '}
                         <Link to="/register" className="text-black font-medium hover:underline">
                             Regístrate aquí

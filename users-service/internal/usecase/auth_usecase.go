@@ -164,6 +164,46 @@ func (uc *AuthUseCase) UpdateProfile(ctx context.Context, userID string, req *do
 
 }
 
+func (uc *AuthUseCase) IsVerifiedUser(ctx context.Context, userID string) (bool, error) {
+	user, err := uc.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return false, repository.ErrUserNotFound
+	}
+	return user.IsVerified, nil
+}
+
+// ResendVerificationEmail resends the verification email to a user that is not yet verified
+func (uc *AuthUseCase) ResendVerificationEmail(ctx context.Context, email string) error {
+	user, err := uc.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return repository.ErrUserNotFound
+	}
+
+	if user.IsVerified {
+		return errors.New("email already verified")
+	}
+
+	// Regenerate token if the current one is empty
+	if user.VerificationToken == "" {
+		token, err := GenerateVerificationToken()
+		if err != nil {
+			return fmt.Errorf("failed to generate verification token: %w", err)
+		}
+		user.VerificationToken = token
+
+		err = uc.userRepo.UpdateVerificationToken(ctx, user.ID.Hex(), token)
+		if err != nil {
+			return fmt.Errorf("failed to update verification token: %w", err)
+		}
+	}
+
+	if uc.rabbitmqChannel != nil {
+		go uc.sendVerificationEmail(user)
+	}
+
+	return nil
+}
+
 // sendVerificationEmail sends a verification email via RabbitMQ
 func (uc *AuthUseCase) sendVerificationEmail(user *domain.User) {
 	// Get base URL from environment or use default
